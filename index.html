@@ -5,89 +5,63 @@
     <title>Прыгающий попап</title>
     <style>
         body {
-            /* Центрируем кнопку и скрываем скроллбары */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            text-align: center;
             margin: 0;
-            overflow: hidden;
-            background-color: #f0f0f0; /* Простой серый фон */
+            padding: 10px;
+            font-family: sans-serif;
         }
-
-        #agreeBtn {
-            padding: 10px 20px;
+        button {
             cursor: pointer;
-        }
-
-        .popup {
-            position: fixed;
-            display: none; /* Скрыт по умолчанию */
-            background-color: white;
-            border: 2px solid black;
-            padding: 20px;
-            z-index: 1000;
         }
     </style>
 </head>
 <body>
 
-    <button id="agreeBtn">Agree</button>
-    
-    <div class="popup" id="popup">
-        <p>Это прыгающее окно!</p>
-        <button onclick="closePopup()">Закрыть</button>
-    </div>
+    <h3>Я прыгаю по экрану!</h3>
+    <button onclick="window.close()">Закрыть</button>
 
     <script>
-        let popup = document.getElementById('popup');
-        let agreeBtn = document.getElementById('agreeBtn');
-        let animationId;
-
-        // Начальная позиция и скорость
-        let x = 50;
-        let y = 50;
-        let vx = 4; // скорость по X
-        let vy = 3; // скорость по Y
-
-        agreeBtn.addEventListener('click', function() {
-            // Показываем попап и запускаем анимацию
-            popup.style.display = 'block';
-            animate();
-        });
+        // Начальные координаты и скорость
+        let x = 100;
+        let y = 100;
+        let vx = 5; // скорость по горизонтали
+        let vy = 3; // скорость по вертикали
 
         function animate() {
-            // Получаем размеры окна и попапа
-            let popupWidth = popup.offsetWidth;
-            let popupHeight = popup.offsetHeight;
-            let windowWidth = window.innerWidth;
-            let windowHeight = window.innerHeight;
+            // Получаем размеры всего экрана (а не окна браузера)
+            const screenWidth = screen.availWidth;
+            const screenHeight = screen.availHeight;
+            
+            // Получаем размеры нашего всплывающего окна
+            const windowWidth = window.outerWidth;
+            const windowHeight = window.outerHeight;
 
-            // Двигаем попап
+            // Двигаем окно
             x += vx;
             y += vy;
 
-            // Проверка столкновения с краями экрана
-            if (x + popupWidth > windowWidth || x < 0) {
-                vx = -vx; // Меняем направление по горизонтали
+            // Отталкиваемся от краев экрана
+            if (x + windowWidth > screenWidth || x < 0) {
+                vx = -vx; // Меняем направление по X
             }
-            if (y + popupHeight > windowHeight || y < 0) {
-                vy = -vy; // Меняем направление по вертикали
+            if (y + windowHeight > screenHeight || y < 0) {
+                vy = -vy; // Меняем направление по Y
             }
 
-            // Устанавливаем новую позицию
-            popup.style.left = x + 'px';
-            popup.style.top = y + 'px';
+            // Перемещаем окно в новые координаты
+            window.moveTo(x, y);
 
             // Продолжаем анимацию
-            animationId = requestAnimationFrame(animate);
+            requestAnimationFrame(animate);
         }
 
-        function closePopup() {
-            popup.style.display = 'none';
-            // Останавливаем анимацию
-            cancelAnimationFrame(animationId);
-        }
+        // Запускаем анимацию, когда окно полностью загружено
+        window.onload = function() {
+            // Можно задать случайную начальную позицию
+            x = Math.random() * (screen.availWidth - 300);
+            y = Math.random() * (screen.availHeight - 200);
+            animate();
+        };
     </script>
 
 </body>
