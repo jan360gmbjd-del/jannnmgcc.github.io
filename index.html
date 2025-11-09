@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная страница</title>
+</head>
+<body>
+
+    <h1>Главная страница</h1>
+    <p>Нажмите на кнопку, чтобы открыть прыгающий попап.</p>
+    
+    <button id="openPopupBtn">Открыть прыгающий попап</button>
+
+    <script>
+        const openPopupBtn = document.getElementById('openPopupBtn');
+
+        openPopupBtn.addEventListener('click', function() {
+            // Пытаемся открыть новое окно с файлом popup.html
+            const popupWindow = window.open(
+                'popup.html',          // URL файла, который будет открыт в окне
+                'jumpingPopup',        // Уникальное имя окна
+                'width=300,height=200' // Ширина и высота окна
+            );
+
+            // Проверяем, не заблокировал ли браузер окно
+            if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
+                alert('Похоже, ваш браузер заблокировал всплывающее окно. Разрешите всплывающие окна для этого сайта и попробуйте снова.');
+            }
+        });
+    </script>
+
+</body>
+</html>
