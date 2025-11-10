@@ -51,22 +51,22 @@
         canvas {
             border: 2px solid white;
             background: #333;
-            flex-shrink: 0; /* Prevents canvas from shrinking */
+            flex-shrink: 0;
         }
         #game-screen canvas {
             cursor: default;
         }
         #level-builder-screen {
-            justify-content: flex-start; /* Align items to the top */
-            align-items: center; /* Center items horizontally */
-            overflow-x: auto; /* Allow horizontal scrolling for long levels */
+            justify-content: flex-start;
+            align-items: center;
+            overflow-x: auto;
             width: 100%;
         }
         #level-builder-screen canvas {
             cursor: crosshair;
         }
         #game-over-overlay {
-            background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjZmN3FqNzNlZ2FqM2Z4a2x3bnR3a3M4aXQ4c3hiaXJ4a2p2bWZkbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Ju7l5y9osyymQ/giphy.gif');
+            background-image: url('assets/game-over.gif');
             background-size: cover;
             background-position: center;
             z-index: 10;
@@ -88,7 +88,6 @@
             background: #666;
         }
         #builder-tools {
-            /* --- CHANGED: No longer absolute positioned --- */
             background: rgba(0,0,0,0.9);
             padding: 10px;
             border: 1px solid white;
@@ -97,9 +96,9 @@
             justify-content: center;
             gap: 5px;
             width: 100%;
-            max-width: 900px; /* Limit max width for very large screens */
+            max-width: 900px;
             box-sizing: border-box;
-            margin-top: 10px; /* Add space between canvas and tools */
+            margin-top: 10px;
         }
         #builder-tools h4 {
             width: 100%;
@@ -220,8 +219,7 @@
         <div id="mobile-right" class="mobile-control-btn">►</div>
     </div>
 
-    <audio id="gameOverSound" src="https://www.myinstants.com/media/sounds/virus-sound.mp3"></audio>
-    <audio id="levelCompleteSound" src="https://www.myinstants.com/media/sounds/success-fanfare-trumpets.mp3"></audio>
+    <audio id="gameOverSound" src="assets/game-over-sound.mp3"></audio>
 
     <script>
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -248,7 +246,6 @@
         const testLevelBtn = document.getElementById('testLevelBtn');
         
         const gameOverSound = document.getElementById('gameOverSound');
-        const levelCompleteSound = document.getElementById('levelCompleteSound');
 
         let animationId;
         let currentLevel = {};
@@ -345,7 +342,7 @@
             if (isGameOver) return; isGameOver = true; cancelAnimationFrame(animationId); showScreen(gameOverOverlay); gameOverSound.play(); window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
         }
         function levelComplete() {
-            cancelAnimationFrame(animationId); levelCompleteSound.play();
+            cancelAnimationFrame(animationId);
             if (gameSource === 'editor') {
                 setTimeout(() => showScreen(agreeScreen), 1500);
             } else {
