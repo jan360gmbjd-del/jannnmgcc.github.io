@@ -51,12 +51,16 @@
         canvas {
             border: 2px solid white;
             background: #333;
+            flex-shrink: 0; /* Prevents canvas from shrinking */
         }
         #game-screen canvas {
             cursor: default;
         }
         #level-builder-screen {
-            justify-content: flex-start; /* Align canvas to top */
+            justify-content: flex-start; /* Align items to the top */
+            align-items: center; /* Center items horizontally */
+            overflow-x: auto; /* Allow horizontal scrolling for long levels */
+            width: 100%;
         }
         #level-builder-screen canvas {
             cursor: crosshair;
@@ -84,26 +88,30 @@
             background: #666;
         }
         #builder-tools {
-            position: absolute;
-            bottom: 10px; /* Moved to bottom */
-            left: 50%;
-            transform: translateX(-50%); /* Centered */
+            /* --- CHANGED: No longer absolute positioned --- */
             background: rgba(0,0,0,0.9);
             padding: 10px;
             border: 1px solid white;
-            z-index: 20;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 5px;
-            max-width: 90%;
+            width: 100%;
+            max-width: 900px; /* Limit max width for very large screens */
+            box-sizing: border-box;
+            margin-top: 10px; /* Add space between canvas and tools */
         }
         #builder-tools h4 {
-            width: 100%; /* Make headers take full width */
+            width: 100%;
             margin: 5px 0;
             text-align: center;
             border-bottom: 1px solid #aaa;
             padding-bottom: 5px;
+        }
+        #builder-tools p {
+            width: 100%;
+            text-align: center;
+            margin: 0 0 10px 0;
         }
         .tool-active {
             background: #00aaff;
@@ -169,6 +177,7 @@
     <div id="level-builder-screen" class="screen hidden">
         <canvas id="builderCanvas" width="1600" height="400"></canvas>
         <div id="builder-tools">
+            <p>Click to place/select/delete. Objects snap to grid.</p>
             <h4>Place</h4>
             <button id="toolPlatform" class="tool-active">Platform</button>
             <button id="toolDeath">Death</button>
@@ -188,7 +197,6 @@
                 <tr><td></td><td><button id="moveDown" disabled>▼</button></td><td></td></tr>
             </table>
         </div>
-        <p style="position: absolute; top: 10px; left: 10px;">Click to place/select/delete. Objects snap to grid.</p>
     </div>
 
     <div id="level-select-screen" class="screen hidden">
@@ -296,7 +304,6 @@
             const mobileRight = document.getElementById('mobile-right');
             const mobileJump = document.getElementById('mobile-jump');
 
-            // FIX: Removed mouse listeners to prevent conflict with keyboard controls
             mobileLeft.addEventListener('touchstart', (e) => { e.preventDefault(); touchControls.leftPressed = true; });
             mobileLeft.addEventListener('touchend', (e) => { e.preventDefault(); touchControls.leftPressed = false; });
             mobileRight.addEventListener('touchstart', (e) => { e.preventDefault(); touchControls.rightPressed = true; });
