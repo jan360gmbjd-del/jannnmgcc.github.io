@@ -171,6 +171,7 @@
 
         let animationId;
         let currentLevel = {};
+        let isGameOver = false; // FIX: Added a flag to prevent multiple game over calls
 
         const defaultLevel = {
             name: "Level 1 - Hard",
@@ -210,6 +211,7 @@
         });
 
         function startGame(levelData) {
+            isGameOver = false; // FIX: Reset the flag when a new game starts
             showScreen(gameScreen);
             gameOverSound.pause();
             gameOverSound.currentTime = 0;
@@ -230,6 +232,8 @@
             window.addEventListener('keyup', keyUpHandler);
 
             function gameLoop() {
+                if (isGameOver) return; // FIX: Stop the loop if the game is over
+
                 ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
                 player.velocityX = 0;
@@ -300,6 +304,12 @@
         }
         
         function gameOver() {
+            // FIX: This block prevents the function from running more than once
+            if (isGameOver) {
+                return;
+            }
+            isGameOver = true;
+
             cancelAnimationFrame(animationId);
             showScreen(gameOverOverlay);
             gameOverSound.play();
@@ -386,7 +396,6 @@
                     btn.addEventListener('click', () => {
                         if (builderCleanup) builderCleanup();
                         const cleanupGame = startGame(levelData);
-                        // We don't need the cleanup function here, but it's good practice
                     });
                     levelSelectList.appendChild(btn);
                 }
