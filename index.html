@@ -2,32 +2,204 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Главная страница</title>
+    <title>Игра</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: sans-serif;
+            background-color: #222;
+            color: white;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .hidden {
+            display: none !important;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            background: #555;
+            color: white;
+            border: 2px solid white;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #777;
+        }
+        #gameCanvas {
+            border: 2px solid white;
+            background: #333;
+        }
+        #game-over-overlay {
+            background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjZmN3FqNzNlZ2FqM2Z4a2x3bnR3a3M4aXQ4c3hiaXJ4a2p2bWZkbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Ju7l5y9osyymQ/giphy.gif');
+            background-size: cover;
+            background-position: center;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>Главная страница</h1>
-    <p>Нажмите на кнопку, чтобы открыть прыгающий попап.</p>
-    
-    <button id="openPopupBtn">Открыть прыгающий попап</button>
+    <div id="agree-screen" class="screen">
+        <h1>Добро пожаловать</h1>
+        <button id="agreeBtn">Agree</button>
+    </div>
+
+    <div id="menu-screen" class="screen hidden">
+        <h1>Главное меню</h1>
+        <button id="playBtn">Играть</button>
+    </div>
+
+    <div id="game-screen" class="screen hidden">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <p>Управление: WASD для движения, Пробел для прыжка</p>
+    </div>
+
+    <div id="game-over-overlay" class="screen hidden">
+    </div>
+
+    <audio id="gameOverSound" src="https://www.myinstants.com/media/sounds/virus-sound.mp3"></audio>
 
     <script>
-        const openPopupBtn = document.getElementById('openPopupBtn');
+        const agreeScreen = document.getElementById('agree-screen');
+        const menuScreen = document.getElementById('menu-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const gameOverOverlay = document.getElementById('game-over-overlay');
+        const gameOverSound = document.getElementById('gameOverSound');
 
-        openPopupBtn.addEventListener('click', function() {
-            // Пытаемся открыть новое окно с файлом popup.html
-            const popupWindow = window.open(
-                'popup.html',          // URL файла, который будет открыт в окне
-                'jumpingPopup',        // Уникальное имя окна
-                'width=300,height=200' // Ширина и высота окна
-            );
+        const agreeBtn = document.getElementById('agreeBtn');
+        const playBtn = document.getElementById('playBtn');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-            // Проверяем, не заблокировал ли браузер окно
-            if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
-                alert('Похоже, ваш браузер заблокировал всплывающее окно. Разрешите всплывающие окна для этого сайта и попробуйте снова.');
+        let animationId;
+
+        function showScreen(screenToShow) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+            screenToShow.classList.remove('hidden');
+        }
+
+        agreeBtn.addEventListener('click', () => showScreen(menuScreen));
+        playBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            showScreen(gameScreen);
+            gameOverSound.pause();
+            gameOverSound.currentTime = 0;
+            
+            const player = {
+                x: 50,
+                y: 200,
+                width: 30,
+                height: 30,
+                velocityX: 0,
+                velocityY: 0,
+                speed: 5,
+                jumpPower: -12,
+                isJumping: false
+            };
+
+            const platforms = [
+                { x: 0, y: 350, width: 800, height: 50 },
+                { x: 200, y: 280, width: 100, height: 20 },
+                { x: 400, y: 220, width: 100, height: 20 },
+                { x: 600, y: 150, width: 100, height: 20 }
+            ];
+            
+            const deathZones = [
+                { x: 300, y: 330, width: 50, height: 20 },
+                { x: 500, y: 330, width: 50, height: 20 }
+            ];
+
+            const keys = {};
+
+            window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+            window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+            function gameLoop() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                player.velocityX = 0;
+                if (keys['a']) player.velocityX = -player.speed;
+                if (keys['d']) player.velocityX = player.speed;
+                if ((keys['w'] || keys[' ']) && !player.isJumping) {
+                    player.velocityY = player.jumpPower;
+                    player.isJumping = true;
+                }
+
+                player.velocityY += 0.5;
+                player.x += player.velocityX;
+                player.y += player.velocityY;
+
+                if (player.x < 0) player.x = 0;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+                player.isJumping = true;
+                platforms.forEach(platform => {
+                    if (player.x < platform.x + platform.width &&
+                        player.x + player.width > platform.x &&
+                        player.y < platform.y + platform.height &&
+                        player.y + player.height > platform.y) {
+                        
+                        if (player.velocityY > 0 && player.y < platform.y) {
+                            player.y = platform.y - player.height;
+                            player.velocityY = 0;
+                            player.isJumping = false;
+                        }
+                    }
+                });
+
+                deathZones.forEach(zone => {
+                    if (player.x < zone.x + zone.width &&
+                        player.x + player.width > zone.x &&
+                        player.y < zone.y + zone.height &&
+                        player.y + player.height > zone.y) {
+                        gameOver();
+                    }
+                });
+
+                if (player.y > canvas.height) {
+                    gameOver();
+                }
+
+                ctx.fillStyle = 'white';
+                ctx.font = '20px sans-serif';
+                ctx.fillText('Level 1', 20, 30);
+
+                ctx.fillStyle = 'red';
+                deathZones.forEach(zone => ctx.fillRect(zone.x, zone.y, zone.width, zone.height));
+                
+                ctx.fillStyle = 'green';
+                platforms.forEach(platform => ctx.fillRect(platform.x, platform.y, platform.width, platform.height));
+
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+
+                animationId = requestAnimationFrame(gameLoop);
             }
-        });
-    </script>
 
+            gameLoop();
+        }
+
+        function gameOver() {
+            cancelAnimationFrame(animationId);
+            showScreen(gameOverOverlay);
+            gameOverSound.play();
+            window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
+        }
+    </script>
 </body>
 </html>
