@@ -58,6 +58,7 @@
             cursor: default;
         }
         #game-over-overlay {
+            /* This overlay is now only for the initial click, not the persistent image */
             background-color: rgba(0, 0, 0, 0.8);
             z-index: 10;
             display: flex;
@@ -106,24 +107,6 @@
         .mobile-control-btn:active {
             background: rgba(255, 255, 255, 0.5);
         }
-        
-        /* Notification styles */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            border-left: 4px solid #00aaff;
-            z-index: 1000;
-            max-width: 300px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        .notification.show {
-            opacity: 1;
-        }
     </style>
 </head>
 <body>
@@ -146,8 +129,13 @@
         <p>Controls: A/D or Arrow Keys to move, W/Space to jump</p>
     </div>
 
+    <!-- This is the temporary overlay that appears on death -->
     <div id="game-over-overlay" class="screen hidden">
         <img src="assets/game-over.gif" alt="Game Over">
+    </div>
+
+    <!-- This is the PERMANENT overlay that appears after death -->
+    <div id="permanent-game-over" class="screen hidden">
     </div>
 
     <!-- MOBILE CONTROLS -->
@@ -157,11 +145,6 @@
         <div id="mobile-right" class="mobile-control-btn">►</div>
     </div>
 
-    <!-- NOTIFICATION -->
-    <div id="notification" class="notification"></div>
-
-    <audio id="gameOverSound" src="assets/game-over-sound.mp3"></audio>
-
     <script>
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const CONSENT_KEY = 'cookieConsentGiven';
@@ -170,50 +153,43 @@
         const menuScreen = document.getElementById('menu-screen');
         const gameScreen = document.getElementById('game-screen');
         const gameOverOverlay = document.getElementById('game-over-overlay');
+        const permanentGameOverOverlay = document.getElementById('permanent-game-over');
         const mobileControls = document.getElementById('mobile-game-controls');
-        const notification = document.getElementById('notification');
         const acceptBtn = document.getElementById('acceptBtn');
         const playBtn = document.getElementById('playBtn');
-        const gameOverSound = document.getElementById('gameOverSound');
 
         let animationId;
         let currentLevel = {};
         let isGameOver = false;
         let currentLevelIndex = 0;
 
-        // Define the three levels
+        // Define the three levels with fixed layouts and player start positions
         const levels = [
             {
                 name: "Level 1: The Beginning",
+                playerStart: { x: 150, y: 300 }, // Start player on the first platform
                 cubes: [{ x: 100, y: 350, width: 100, height: 50 }, { x: 300, y: 350, width: 100, height: 50 }, { x: 500, y: 350, width: 100, height: 50 }],
                 deathCubes: [],
                 movingCubes: [],
-                winPortal: { x: 700, y: 300, width: 40, height: 50 }
+                winPortal: { x: 720, y: 300, width: 40, height: 50 } // Portal on platform
             },
             {
                 name: "Level 2: A Little Harder",
-                cubes: [{ x: 50, y: 350, width: 80, height: 50 }, { x: 200, y: 280, width: 80, height: 20 }, { x: 400, y: 220, width: 80, height: 20 }, { x: 600, y: 350, width: 100, height: 50 }],
+                playerStart: { x: 150, y: 300 },
+                cubes: [{ x: 100, y: 350, width: 100, height: 50 }, { x: 200, y: 280, width: 80, height: 20 }, { x: 400, y: 220, width: 80, height: 20 }, { x: 600, y: 350, width: 100, height: 50 }],
                 deathCubes: [{ x: 280, y: 330, width: 40, height: 40 }, { x: 480, y: 330, width: 40, height: 40 }],
                 movingCubes: [{ x: 350, y: 150, width: 60, height: 20, speed: 2, range: 100, direction: 1, initialX: 350 }],
-                winPortal: { x: 700, y: 300, width: 40, height: 50 }
+                winPortal: { x: 720, y: 300, width: 40, height: 50 } // Portal on platform
             },
             {
                 name: "Level 3: The Final Challenge",
-                cubes: [{ x: 50, y: 350, width: 60, height: 50 }, { x: 200, y: 320, width: 60, height: 20 }, { x: 350, y: 250, width: 60, height: 20 }, { x: 500, y: 180, width: 60, height: 20 }, { x: 650, y: 110, width: 100, height: 20 }],
+                playerStart: { x: 150, y: 300 },
+                cubes: [{ x: 100, y: 350, width: 100, height: 50 }, { x: 200, y: 320, width: 60, height: 20 }, { x: 350, y: 250, width: 60, height: 20 }, { x: 500, y: 180, width: 60, height: 20 }, { x: 650, y: 110, width: 100, height: 20 }],
                 deathCubes: [{ x: 130, y: 330, width: 40, height: 40 }, { x: 260, y: 300, width: 40, height: 40 }, { x: 410, y: 230, width: 40, height: 40 }, { x: 560, y: 160, width: 40, height: 40 }],
                 movingCubes: [{ x: 150, y: 200, width: 50, height: 20, speed: 3, range: 120, direction: 1, initialX: 150 }, { x: 450, y: 100, width: 50, height: 20, speed: 2, range: 80, direction: -1, initialX: 450 }],
-                winPortal: { x: 720, y: 60, width: 40, height: 50 }
+                winPortal: { x: 720, y: 60, width: 40, height: 50 } // Portal on platform
             }
         ];
-
-        // Show notification function
-        function showNotification(message, duration = 3000) {
-            notification.textContent = message;
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, duration);
-        }
 
         function showScreen(screenToShow) {
             document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
@@ -226,20 +202,16 @@
             }
         }
 
-        // --- FIX 1: Corrected initial screen logic ---
-        // Check if consent has NOT been given. If not, show the consent screen.
+        // Initial screen logic
         if (localStorage.getItem(CONSENT_KEY) !== 'true') {
             showScreen(consentScreen);
         } else {
             showScreen(menuScreen);
         }
-        // To test this again, you can clear your browser's localStorage for this site.
-        // In the browser console, type: localStorage.clear() and refresh the page.
 
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
             showScreen(menuScreen);
-            showNotification('Welcome! You can now play.');
         });
 
         playBtn.addEventListener('click', () => {
@@ -248,9 +220,7 @@
         });
 
         gameOverOverlay.addEventListener('click', () => {
-            gameOverSound.pause();
-            gameOverSound.currentTime = 0;
-            showScreen(menuScreen);
+            // This click now does nothing, the permanent overlay is already shown
         });
 
         function startLevel(levelIndex) {
@@ -260,9 +230,18 @@
             const gameCanvas = document.getElementById('gameCanvas'); 
             const ctx = gameCanvas.getContext('2d');
             
-            // --- FIX 2: Corrected player starting position ---
-            // Player now starts on the first platform.
-            const player = { x: 150, y: 200, width: 30, height: 30, velocityX: 0, velocityY: 0, speed: 5, jumpPower: -12, isJumping: false };
+            // Use the player start position from the level data
+            const player = { 
+                x: currentLevel.playerStart.x, 
+                y: currentLevel.playerStart.y, 
+                width: 30, 
+                height: 30, 
+                velocityX: 0, 
+                velocityY: 0, 
+                speed: 5, 
+                jumpPower: -12, 
+                isJumping: false 
+            };
             
             const keys = {};
             const touchControls = { leftPressed: false, rightPressed: false };
@@ -364,18 +343,32 @@
             if (isGameOver) return; 
             isGameOver = true; 
             cancelAnimationFrame(animationId); 
-            showScreen(gameOverOverlay); 
-            gameOverSound.play(); 
+            
+            // Show the temporary overlay
+            showScreen(gameOverOverlay);
+
+            // Show the PERMANENT overlay with the GIF
+            permanentGameOverOverlay.style.backgroundImage = "url('assets/game-over.gif')";
+            permanentGameOverOverlay.style.backgroundSize = "cover";
+            permanentGameOverOverlay.style.backgroundPosition = "center";
+            permanentGameOverOverlay.classList.remove('hidden');
+
+            // Start the pop-up chaos
+            window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
+
+            if (Math.random() > 0.5) {
+                setTimeout(() => {
+                    window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
+                }, Math.random() * 3000 + 1000);
+            }
         }
         
         function levelComplete() {
             cancelAnimationFrame(animationId);
             currentLevelIndex++;
             if (currentLevelIndex < levels.length) {
-                showNotification(`Level Complete! Get ready for ${levels[currentLevelIndex].name}!`);
                 setTimeout(() => startLevel(currentLevelIndex), 2000);
             } else {
-                showNotification('Congratulations! You have completed all levels!');
                 setTimeout(() => showScreen(menuScreen), 2500);
             }
         }
