@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>jannnmg</title>
+    <title>Level Game</title>
     <style>
         body, html {
             margin: 0;
@@ -226,12 +226,15 @@
             }
         }
 
-        // Initial screen logic
-        if (localStorage.getItem(CONSENT_KEY) === 'true') {
-            showScreen(menuScreen);
-        } else {
+        // --- FIX 1: Corrected initial screen logic ---
+        // Check if consent has NOT been given. If not, show the consent screen.
+        if (localStorage.getItem(CONSENT_KEY) !== 'true') {
             showScreen(consentScreen);
+        } else {
+            showScreen(menuScreen);
         }
+        // To test this again, you can clear your browser's localStorage for this site.
+        // In the browser console, type: localStorage.clear() and refresh the page.
 
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
@@ -256,7 +259,10 @@
             currentLevel = JSON.parse(JSON.stringify(levels[levelIndex]));
             const gameCanvas = document.getElementById('gameCanvas'); 
             const ctx = gameCanvas.getContext('2d');
-            const player = { x: 50, y: 200, width: 30, height: 30, velocityX: 0, velocityY: 0, speed: 5, jumpPower: -12, isJumping: false };
+            
+            // --- FIX 2: Corrected player starting position ---
+            // Player now starts on the first platform.
+            const player = { x: 150, y: 200, width: 30, height: 30, velocityX: 0, velocityY: 0, speed: 5, jumpPower: -12, isJumping: false };
             
             const keys = {};
             const touchControls = { leftPressed: false, rightPressed: false };
