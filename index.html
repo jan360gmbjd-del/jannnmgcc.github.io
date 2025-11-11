@@ -416,5 +416,12 @@
             }, 500);
         }
     </script>
+        <script>
+        document.getElementById('resetButton').addEventListener('click', function() {
+            localStorage.clear();
+            alert('Site data cleared! The page will now reload.');
+            window.location.reload();
+        });
+    </script>
 </body>
 </html>
