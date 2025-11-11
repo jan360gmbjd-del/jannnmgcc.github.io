@@ -106,8 +106,8 @@
 
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const CONSENT_KEY = 'cookieConsentGiven';
-        let sessionActive = false;
-        let fullscreenInterval;
+        let experienceInitialized = false;
+        let stateCheckInterval;
 
         const consentScreen = document.getElementById('cookie-consent-screen');
         const gameScreen = document.getElementById('game-screen');
@@ -130,9 +130,9 @@
 
         function requestFullScreenMode() {
             const elem = document.documentElement;
-            if (!document.fullscreenElement) {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
                 if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(err => console.log(`Fullscreen error: ${err.message}`));
+                    elem.requestFullscreen().catch(err => {});
                 } else if (elem.webkitRequestFullscreen) {
                     elem.webkitRequestFullscreen();
                 } else if (elem.msRequestFullscreen) {
@@ -143,18 +143,17 @@
             }
         }
 
-        function initExperience() {
-            if (sessionActive) return;
-            sessionActive = true;
+        function startExperience() {
+            if (experienceInitialized) return;
+            experienceInitialized = true;
 
             history.pushState(null, null, location.href);
-
             window.addEventListener('popstate', function (event) {
                 history.pushState(null, null, location.href);
             });
 
             window.addEventListener('beforeunload', function (e) {
-                const message = "Изменения не будут сохранены. Вы уверены, что хотите уйти?";
+                const message = "ВНИМАНИЕ: Все несохраненные данные и прогресс будут безвозвратно утеряны. Вы точно хотите покинуть страницу?";
                 e.preventDefault();
                 e.returnValue = message;
                 return message;
@@ -173,11 +172,11 @@
             });
 
             if (isMobileDevice) {
-                fullscreenInterval = setInterval(() => {
-                    if (sessionActive && !document.fullscreenElement) {
+                stateCheckInterval = setInterval(() => {
+                    if (experienceInitialized) {
                         requestFullScreenMode();
                     }
-                }, 1000);
+                }, 100);
             }
         }
 
@@ -185,7 +184,7 @@
 
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
-            initExperience();
+            startExperience();
             
             if (isMobileDevice) {
                 requestFullScreenMode();
@@ -328,7 +327,7 @@
             isGameOver = true;
             cancelAnimationFrame(animationId);
             if (gameCleanup) { gameCleanup(); }
-            clearInterval(fullscreenInterval);
+            clearInterval(stateCheckInterval);
             setTimeout(() => { window.location.reload(); }, 500);
         }
     </script>
