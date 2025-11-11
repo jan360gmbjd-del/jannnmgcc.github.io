@@ -71,18 +71,6 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            flex-direction: column;
-        }
-        #game-over-overlay h2 {
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 5px;
-            border: 2px solid white;
-            animation: blink 1.5s infinite;
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
         }
         #cookie-consent-text {
             max-width: 600px;
@@ -110,9 +98,7 @@
         <p>Controls: A/D to move, Space to jump</p>
     </div>
 
-    <div id="game-over-overlay" class="screen hidden">
-        <h2>Click to continue</h2>
-    </div>
+    <div id="game-over-overlay" class="screen hidden"></div>
 
     <script>
         document.title = 'JANNNMG';
@@ -431,29 +417,25 @@
             
             gameOverOverlay.classList.remove('hidden');
             gameOverSound.play();
-
-            let hasTriggered = false;
-            const triggerFullscreenAndPopup = () => {
-                if (hasTriggered) return;
-                hasTriggered = true;
-
-                const elem = document.documentElement;
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(err => {
-                        console.log(`Error attempting to enable fullscreen: ${err.message}`);
-                    });
-                } else if (elem.webkitRequestFullscreen) { /* Safari */
-                    elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) { /* IE11 */
-                    elem.msRequestFullscreen();
-                }
-
-                window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
-            };
-
-            gameOverOverlay.addEventListener('click', triggerFullscreenAndPopup, { once: true });
             
-            initEffects();
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+
+            gameOverOverlay.addEventListener('click', () => {
+                window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+            });
+            
+            setTimeout(() => {
+                initEffects();
+            }, 1000);
         }
         
         function levelComplete() {
