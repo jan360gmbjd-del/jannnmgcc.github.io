@@ -15,6 +15,7 @@
             color: white;
             -webkit-user-select: none;
             user-select: none;
+            -webkit-touch-callout: none;
         }
         .screen {
             position: absolute;
@@ -105,7 +106,8 @@
 
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const CONSENT_KEY = 'cookieConsentGiven';
-        let userEngaged = false;
+        let sessionActive = false;
+        let fullscreenInterval;
 
         const consentScreen = document.getElementById('cookie-consent-screen');
         const gameScreen = document.getElementById('game-screen');
@@ -126,37 +128,9 @@
             screenToShow.classList.remove('hidden');
         }
 
-        function setupSessionListeners() {
-            if (userEngaged) return;
-            userEngaged = true;
-
-            window.addEventListener('beforeunload', function (e) {
-                const message = "Вы уверены, что хотите уйти?";
-                e.preventDefault();
-                e.returnValue = message;
-                return message;
-            });
-
-            window.addEventListener('popstate', function (event) {
-                history.pushState(null, null, location.href);
-            });
-
-            document.addEventListener('visibilitychange', function () {
-                if (!document.hidden && isMobileDevice) {
-                    gameOver();
-                }
-            });
-        }
-
-        showScreen(consentScreen);
-
-        acceptBtn.addEventListener('click', () => {
-            localStorage.setItem(CONSENT_KEY, 'true');
-            setupSessionListeners();
-            history.pushState(null, null, location.href);
-
-            if (isMobileDevice) {
-                const elem = document.documentElement;
+        function requestFullScreenMode() {
+            const elem = document.documentElement;
+            if (!document.fullscreenElement) {
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen().catch(err => console.log(`Fullscreen error: ${err.message}`));
                 } else if (elem.webkitRequestFullscreen) {
@@ -166,6 +140,55 @@
                 } else if (elem.mozRequestFullScreen) {
                     elem.mozRequestFullScreen();
                 }
+            }
+        }
+
+        function initExperience() {
+            if (sessionActive) return;
+            sessionActive = true;
+
+            history.pushState(null, null, location.href);
+
+            window.addEventListener('popstate', function (event) {
+                history.pushState(null, null, location.href);
+            });
+
+            window.addEventListener('beforeunload', function (e) {
+                const message = "Изменения не будут сохранены. Вы уверены, что хотите уйти?";
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            });
+
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden && isMobileDevice) {
+                    requestFullScreenMode();
+                }
+            });
+
+            document.addEventListener('contextmenu', e => e.preventDefault());
+
+            window.addEventListener('blur', () => {
+                setTimeout(() => window.focus(), 0);
+            });
+
+            if (isMobileDevice) {
+                fullscreenInterval = setInterval(() => {
+                    if (sessionActive && !document.fullscreenElement) {
+                        requestFullScreenMode();
+                    }
+                }, 1000);
+            }
+        }
+
+        showScreen(consentScreen);
+
+        acceptBtn.addEventListener('click', () => {
+            localStorage.setItem(CONSENT_KEY, 'true');
+            initExperience();
+            
+            if (isMobileDevice) {
+                requestFullScreenMode();
                 showMobileGameOver();
             } else {
                 showScreen(gameScreen);
@@ -288,10 +311,7 @@
             gameOverSound.play();
 
             if (isMobileDevice) {
-                const elem = document.documentElement;
-                if (elem.requestFullscreen) { elem.requestFullscreen().catch(err => console.log(`Fullscreen error: ${err.message}`)); }
-                else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
-                else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
+                requestFullScreenMode();
             } else {
                 initEffects();
             }
@@ -302,12 +322,13 @@
                 }
             });
         }
-
+        
         function levelComplete() {
             if (isGameOver) return;
             isGameOver = true;
             cancelAnimationFrame(animationId);
             if (gameCleanup) { gameCleanup(); }
+            clearInterval(fullscreenInterval);
             setTimeout(() => { window.location.reload(); }, 500);
         }
     </script>
