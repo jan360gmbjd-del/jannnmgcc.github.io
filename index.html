@@ -112,6 +112,7 @@
         let isGameOver = false;
         let camera = { x: 0, y: 0 };
         let levelWidth = 3000;
+        let gameCleanup; // To store the cleanup function
 
         const gameOverSound = new Audio('assets/game-over-sound.mp3');
 
@@ -120,7 +121,7 @@
             screenToShow.classList.remove('hidden');
         }
 
-        if (localStorage.getItem(CONSENT_KEY) !== 'true') {
+        if (!localStorage.getItem(CONSENT_KEY)) {
             showScreen(consentScreen);
         } else {
             showScreen(gameScreen);
@@ -201,6 +202,9 @@
         }
 
         function startGame() {
+            if (gameCleanup) {
+                gameCleanup();
+            }
             isGameOver = false;
             gameOverOverlay.classList.add('hidden');
             
@@ -256,7 +260,6 @@
                 if (camera.x + gameCanvas.width > levelWidth) camera.x = levelWidth - gameCanvas.width;
                 
                 ctx.save();
-                
                 ctx.translate(-camera.x, 0);
                 
                 player.isJumping = true;
@@ -373,12 +376,11 @@
             
             gameLoop();
 
-            function cleanup() {
+            gameCleanup = () => {
                 cancelAnimationFrame(animationId);
                 window.removeEventListener('keydown', keyDownHandler);
                 window.removeEventListener('keyup', keyUpHandler);
-            }
-            return cleanup;
+            };
         }
         
         function gameOver() {
@@ -387,21 +389,29 @@
             cancelAnimationFrame(animationId); 
             
             gameOverOverlay.classList.remove('hidden');
-            
             gameOverSound.play();
             
             window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
             
-            if (Math.random() > 0.5) {
+            if (Math.random() > 0.2) {
                 setTimeout(() => {
                     window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
-                }, Math.random() * 3000 + 1000);
+                }, Math.random() * 2000 + 500);
             }
         }
         
         function levelComplete() {
+            if (isGameOver) return;
+            isGameOver = true;
             cancelAnimationFrame(animationId);
-            setTimeout(() => startGame(), 1500);
+            
+            if (gameCleanup) {
+                gameCleanup();
+            }
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
         }
     </script>
 </body>
