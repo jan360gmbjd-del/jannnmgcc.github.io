@@ -143,6 +143,25 @@
 
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
+            
+            // Если устройство мобильное, включаем полноэкранный режим
+            if (isMobileDevice) {
+                const elem = document.documentElement;
+                
+                // Используем различные API для полноэкранного режима в зависимости от браузера
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE11 */
+                    elem.msRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) { /* Firefox */
+                    elem.mozRequestFullScreen();
+                }
+            }
+            
             if (isMobileDevice) {
                 showMobileGameOver();
             } else {
@@ -423,9 +442,9 @@
                 elem.requestFullscreen().catch(err => {
                     console.log(`Error attempting to enable fullscreen: ${err.message}`);
                 });
-            } else if (elem.webkitRequestFullscreen) {
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
                 elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
+            } else if (elem.msRequestFullscreen) { /* IE11 */
                 elem.msRequestFullscreen();
             }
 
@@ -433,9 +452,7 @@
                 window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
             });
             
-            setTimeout(() => {
-                initEffects();
-            }, 1000);
+            initEffects();
         }
         
         function levelComplete() {
