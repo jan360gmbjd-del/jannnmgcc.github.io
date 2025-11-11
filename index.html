@@ -144,20 +144,18 @@
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
             
-            // Если устройство мобильное, включаем полноэкранный режим
             if (isMobileDevice) {
                 const elem = document.documentElement;
                 
-                // Используем различные API для полноэкранного режима в зависимости от браузера
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen().catch(err => {
                         console.log(`Error attempting to enable fullscreen: ${err.message}`);
                     });
-                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                } else if (elem.webkitRequestFullscreen) {
                     elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) { /* IE11 */
+                } else if (elem.msRequestFullscreen) {
                     elem.msRequestFullscreen();
-                } else if (elem.mozRequestFullScreen) { /* Firefox */
+                } else if (elem.mozRequestFullScreen) {
                     elem.mozRequestFullScreen();
                 }
             }
@@ -426,7 +424,9 @@
         }
         
         function initEffects() {
-            window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+            if (!isMobileDevice) {
+                window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+            }
         }
 
         function gameOver() {
@@ -442,14 +442,16 @@
                 elem.requestFullscreen().catch(err => {
                     console.log(`Error attempting to enable fullscreen: ${err.message}`);
                 });
-            } else if (elem.webkitRequestFullscreen) { /* Safari */
+            } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) { /* IE11 */
+            } else if (elem.msRequestFullscreen) {
                 elem.msRequestFullscreen();
             }
 
             gameOverOverlay.addEventListener('click', () => {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+                if (!isMobileDevice) {
+                    window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+                }
             });
             
             initEffects();
