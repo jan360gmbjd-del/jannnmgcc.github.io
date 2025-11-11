@@ -103,22 +103,9 @@
     <script>
         document.title = 'JANNNMG';
 
-        window.addEventListener('beforeunload', function (e) {
-            const userAgent = navigator.userAgent;
-            let platformInfo = "неизвестное устройство";
-            if (userAgent.includes("Windows")) platformInfo = "Windows";
-            else if (userAgent.includes("Mac")) platformInfo = "macOS";
-            else if (userAgent.includes("Linux")) platformInfo = "Linux";
-            else if (userAgent.includes("Android")) platformInfo = "Android";
-            else if (userAgent.includes("iPhone") || userAgent.includes("iPad")) platformInfo = "iOS";
-
-            const message = `Вы уверены, что хотите уйти? Ваше ${platformInfo} и данные на нем могут пострадать!`;
-            e.preventDefault();
-            e.returnValue = message;
-        });
-
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const CONSENT_KEY = 'cookieConsentGiven';
+        let userEngaged = false;
 
         const consentScreen = document.getElementById('cookie-consent-screen');
         const gameScreen = document.getElementById('game-screen');
@@ -139,18 +126,39 @@
             screenToShow.classList.remove('hidden');
         }
 
+        function setupSessionListeners() {
+            if (userEngaged) return;
+            userEngaged = true;
+
+            window.addEventListener('beforeunload', function (e) {
+                const message = "Вы уверены, что хотите уйти?";
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            });
+
+            window.addEventListener('popstate', function (event) {
+                history.pushState(null, null, location.href);
+            });
+
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden && isMobileDevice) {
+                    gameOver();
+                }
+            });
+        }
+
         showScreen(consentScreen);
 
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
-            
+            setupSessionListeners();
+            history.pushState(null, null, location.href);
+
             if (isMobileDevice) {
                 const elem = document.documentElement;
-                
                 if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(err => {
-                        console.log(`Error attempting to enable fullscreen: ${err.message}`);
-                    });
+                    elem.requestFullscreen().catch(err => console.log(`Fullscreen error: ${err.message}`));
                 } else if (elem.webkitRequestFullscreen) {
                     elem.webkitRequestFullscreen();
                 } else if (elem.msRequestFullscreen) {
@@ -158,9 +166,6 @@
                 } else if (elem.mozRequestFullScreen) {
                     elem.mozRequestFullScreen();
                 }
-            }
-            
-            if (isMobileDevice) {
                 showMobileGameOver();
             } else {
                 showScreen(gameScreen);
@@ -171,102 +176,45 @@
         function showMobileGameOver() {
             showScreen(gameOverOverlay);
             gameOverSound.play();
-            initEffects();
+            if (!isMobileDevice) {
+                initEffects();
+            }
         }
 
         function generateRandomLevel() {
-            const level = {
-                name: "Random Level",
-                cubes: [],
-                deathCubes: [],
-                movingCubes: [],
-                winPortal: null
-            };
-
+            const level = { name: "Random Level", cubes: [], deathCubes: [], movingCubes: [], winPortal: null };
             level.cubes.push({ x: 0, y: 350, width: 200, height: 50 });
-
-            let lastX = 200;
-            let lastY = 350;
-            
+            let lastX = 200, lastY = 350;
             while (lastX < levelWidth - 300) {
                 const distance = Math.random() * 150 + 100;
                 const newX = lastX + distance;
                 const heightDiff = (Math.random() - 0.5) * 150;
                 const newY = Math.max(150, Math.min(350, lastY + heightDiff));
                 const width = Math.random() * 100 + 80;
-                
                 level.cubes.push({ x: newX, y: newY, width: width, height: 20 });
-                
                 if (Math.random() < 0.3) {
-                    level.deathCubes.push({ 
-                        x: newX + width/2 - 20, 
-                        y: newY - 40, 
-                        width: 40, 
-                        height: 40 
-                    });
+                    level.deathCubes.push({ x: newX + width / 2 - 20, y: newY - 40, width: 40, height: 40 });
                 }
-                
                 if (Math.random() < 0.2) {
                     const movingWidth = Math.random() * 50 + 50;
-                    level.movingCubes.push({
-                        x: newX,
-                        y: newY - 50,
-                        width: movingWidth,
-                        height: 20,
-                        speed: Math.random() * 2 + 1,
-                        range: Math.random() * 100 + 50,
-                        direction: 1,
-                        initialX: newX
-                    });
+                    level.movingCubes.push({ x: newX, y: newY - 50, width: movingWidth, height: 20, speed: Math.random() * 2 + 1, range: Math.random() * 100 + 50, direction: 1, initialX: newX });
                 }
-                
-                lastX = newX;
-                lastY = newY;
+                lastX = newX; lastY = newY;
             }
-            
-            level.winPortal = { 
-                x: levelWidth - 100, 
-                y: lastY - 50, 
-                width: 40, 
-                height: 50 
-            };
-            
-            level.cubes.push({ 
-                x: levelWidth - 150, 
-                y: lastY, 
-                width: 200, 
-                height: 50 
-            });
-            
+            level.winPortal = { x: levelWidth - 100, y: lastY - 50, width: 40, height: 50 };
+            level.cubes.push({ x: levelWidth - 150, y: lastY, width: 200, height: 50 });
             return level;
         }
 
         function startGame() {
-            if (gameCleanup) {
-                gameCleanup();
-            }
+            if (gameCleanup) { gameCleanup(); }
             isGameOver = false;
             gameOverOverlay.classList.add('hidden');
-            
             currentLevel = generateRandomLevel();
-            
             const gameCanvas = document.getElementById('gameCanvas');
             const ctx = gameCanvas.getContext('2d');
-            
-            const player = { 
-                x: 100, 
-                y: 300, 
-                width: 30, 
-                height: 30, 
-                velocityX: 0, 
-                velocityY: 0, 
-                speed: 5, 
-                jumpPower: -12, 
-                isJumping: false 
-            };
-            
+            const player = { x: 100, y: 300, width: 30, height: 30, velocityX: 0, velocityY: 0, speed: 5, jumpPower: -12, isJumping: false };
             const keys = {};
-            
             const keyDownHandler = (e) => { keys[e.code] = true; };
             const keyUpHandler = (e) => { keys[e.code] = false; };
             window.addEventListener('keydown', keyDownHandler);
@@ -274,155 +222,58 @@
 
             function gameLoop() {
                 if (isGameOver) return;
-                
                 ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-                
                 ctx.fillStyle = '#1a1a2e';
                 ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
-                
                 player.velocityX = 0;
                 if (keys['KeyA']) player.velocityX = -player.speed;
                 if (keys['KeyD']) player.velocityX = player.speed;
-                if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) { 
-                    player.velocityY = player.jumpPower; 
-                    player.isJumping = true; 
-                }
-                
+                if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) { player.velocityY = player.jumpPower; player.isJumping = true; }
                 player.velocityY += 0.5;
-                player.x += player.velocityX; 
-                player.y += player.velocityY;
-                
-                if (player.x < 0) player.x = 0; 
+                player.x += player.velocityX; player.y += player.velocityY;
+                if (player.x < 0) player.x = 0;
                 if (player.x + player.width > levelWidth) player.x = levelWidth - player.width;
-                
                 camera.x = player.x - gameCanvas.width / 2;
                 if (camera.x < 0) camera.x = 0;
                 if (camera.x + gameCanvas.width > levelWidth) camera.x = levelWidth - gameCanvas.width;
-                
                 ctx.save();
                 ctx.translate(-camera.x, 0);
-                
                 player.isJumping = true;
                 currentLevel.cubes.forEach(cube => {
-                    if (player.x < cube.x + cube.width && 
-                        player.x + player.width > cube.x && 
-                        player.y < cube.y + cube.height && 
-                        player.y + player.height > cube.y) {
-                        
-                        if (player.velocityY > 0 && player.y < cube.y) {
-                            player.y = cube.y - player.height;
-                            player.velocityY = 0;
-                            player.isJumping = false;
-                        }
-                        else if (player.velocityY < 0 && player.y > cube.y) {
-                            player.y = cube.y + cube.height;
-                            player.velocityY = 0;
-                        }
-                        else if (player.velocityX > 0 && player.x < cube.x) {
-                            player.x = cube.x - player.width;
-                        }
-                        else if (player.velocityX < 0 && player.x > cube.x) {
-                            player.x = cube.x + cube.width;
-                        }
+                    if (player.x < cube.x + cube.width && player.x + player.width > cube.x && player.y < cube.y + cube.height && player.y + player.height > cube.y) {
+                        if (player.velocityY > 0 && player.y < cube.y) { player.y = cube.y - player.height; player.velocityY = 0; player.isJumping = false; }
+                        else if (player.velocityY < 0 && player.y > cube.y) { player.y = cube.y + cube.height; player.velocityY = 0; }
+                        else if (player.velocityX > 0 && player.x < cube.x) { player.x = cube.x - player.width; }
+                        else if (player.velocityX < 0 && player.x > cube.x) { player.x = cube.x + cube.width; }
                     }
                 });
-
                 currentLevel.movingCubes.forEach(cube => {
-                    if (!cube.direction) cube.direction = 1;
-                    if (!cube.speed) cube.speed = 2;
-                    if (!cube.range) cube.range = 100;
-                    if (!cube.initialX) cube.initialX = cube.x;
-                    
+                    if (!cube.direction) cube.direction = 1; if (!cube.speed) cube.speed = 2; if (!cube.range) cube.range = 100; if (!cube.initialX) cube.initialX = cube.x;
                     cube.x += cube.speed * cube.direction;
-                    
-                    if (cube.x > cube.initialX + cube.range || cube.x < cube.initialX) {
-                        cube.direction *= -1;
-                    }
-                    
-                    if (player.x < cube.x + cube.width && 
-                        player.x + player.width > cube.x && 
-                        player.y < cube.y + cube.height && 
-                        player.y + player.height > cube.y) {
-                        
-                        if (player.velocityY > 0 && player.y < cube.y) {
-                            player.y = cube.y - player.height;
-                            player.velocityY = 0;
-                            player.isJumping = false;
-                            player.x += cube.speed * cube.direction;
-                        }
-                        else if (player.velocityY < 0 && player.y > cube.y) {
-                            player.y = cube.y + cube.height;
-                            player.velocityY = 0;
-                        }
-                        else if (player.velocityX > 0 && player.x < cube.x) {
-                            player.x = cube.x - player.width;
-                        }
-                        else if (player.velocityX < 0 && player.x > cube.x) {
-                            player.x = cube.x + cube.width;
-                        }
+                    if (cube.x > cube.initialX + cube.range || cube.x < cube.initialX) { cube.direction *= -1; }
+                    if (player.x < cube.x + cube.width && player.x + player.width > cube.x && player.y < cube.y + cube.height && player.y + player.height > cube.y) {
+                        if (player.velocityY > 0 && player.y < cube.y) { player.y = cube.y - player.height; player.velocityY = 0; player.isJumping = false; player.x += cube.speed * cube.direction; }
+                        else if (player.velocityY < 0 && player.y > cube.y) { player.y = cube.y + cube.height; player.velocityY = 0; }
+                        else if (player.velocityX > 0 && player.x < cube.x) { player.x = cube.x - player.width; }
+                        else if (player.velocityX < 0 && player.x > cube.x) { player.x = cube.x + cube.width; }
                     }
                 });
-                
-                currentLevel.deathCubes.forEach(cube => {
-                    if (player.x < cube.x + cube.width && 
-                        player.x + player.width > cube.x && 
-                        player.y < cube.y + cube.height && 
-                        player.y + player.height > cube.y) { 
-                        gameOver(); 
-                    }
-                });
-                
-                if (currentLevel.winPortal && 
-                    player.x < currentLevel.winPortal.x + currentLevel.winPortal.width && 
-                    player.x + player.width > currentLevel.winPortal.x && 
-                    player.y < currentLevel.winPortal.y + currentLevel.winPortal.height && 
-                    player.y + player.height > currentLevel.winPortal.y) {
-                    levelComplete();
-                }
-                
-                if (player.y > 500) { 
-                    gameOver(); 
-                }
-                
-                ctx.fillStyle = 'white'; 
-                ctx.font = '20px sans-serif'; 
-                ctx.fillText(currentLevel.name, 20 + camera.x, 30);
-                
-                ctx.fillStyle = 'gold'; 
-                ctx.fillRect(currentLevel.winPortal.x, currentLevel.winPortal.y, currentLevel.winPortal.width, currentLevel.winPortal.height);
-                
-                ctx.fillStyle = 'purple'; 
-                currentLevel.movingCubes.forEach(cube => { 
-                    ctx.fillRect(cube.x, cube.y, cube.width, cube.height); 
-                });
-                
-                ctx.fillStyle = 'red'; 
-                currentLevel.deathCubes.forEach(cube => { 
-                    ctx.fillRect(cube.x, cube.y, cube.width, cube.height); 
-                });
-                
-                ctx.fillStyle = 'green'; 
-                currentLevel.cubes.forEach(cube => { 
-                    ctx.fillRect(cube.x, cube.y, cube.width, cube.height); 
-                });
-                
-                ctx.fillStyle = 'blue'; 
-                ctx.fillRect(player.x, player.y, player.width, player.height);
-                
+                currentLevel.deathCubes.forEach(cube => { if (player.x < cube.x + cube.width && player.x + player.width > cube.x && player.y < cube.y + cube.height && player.y + player.height > cube.y) { gameOver(); } });
+                if (currentLevel.winPortal && player.x < currentLevel.winPortal.x + currentLevel.winPortal.width && player.x + player.width > currentLevel.winPortal.x && player.y < currentLevel.winPortal.y + currentLevel.winPortal.height && player.y + player.height > currentLevel.winPortal.y) { levelComplete(); }
+                if (player.y > 500) { gameOver(); }
+                ctx.fillStyle = 'white'; ctx.font = '20px sans-serif'; ctx.fillText(currentLevel.name, 20 + camera.x, 30);
+                ctx.fillStyle = 'gold'; ctx.fillRect(currentLevel.winPortal.x, currentLevel.winPortal.y, currentLevel.winPortal.width, currentLevel.winPortal.height);
+                ctx.fillStyle = 'purple'; currentLevel.movingCubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
+                ctx.fillStyle = 'red'; currentLevel.deathCubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
+                ctx.fillStyle = 'green'; currentLevel.cubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
+                ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
                 ctx.restore();
-                
                 animationId = requestAnimationFrame(gameLoop);
             }
-            
             gameLoop();
-
-            gameCleanup = () => {
-                cancelAnimationFrame(animationId);
-                window.removeEventListener('keydown', keyDownHandler);
-                window.removeEventListener('keyup', keyUpHandler);
-            };
+            gameCleanup = () => { cancelAnimationFrame(animationId); window.removeEventListener('keydown', keyDownHandler); window.removeEventListener('keyup', keyUpHandler); };
         }
-        
+
         function initEffects() {
             if (!isMobileDevice) {
                 window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
@@ -430,22 +281,19 @@
         }
 
         function gameOver() {
-            if (isGameOver) return; 
-            isGameOver = true; 
-            cancelAnimationFrame(animationId); 
-            
-            gameOverOverlay.classList.remove('hidden');
+            if (isGameOver) return;
+            isGameOver = true;
+            cancelAnimationFrame(animationId);
+            showScreen(gameOverOverlay);
             gameOverSound.play();
-            
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => {
-                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
-                });
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
+
+            if (isMobileDevice) {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) { elem.requestFullscreen().catch(err => console.log(`Fullscreen error: ${err.message}`)); }
+                else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+                else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
+            } else {
+                initEffects();
             }
 
             gameOverOverlay.addEventListener('click', () => {
@@ -453,22 +301,14 @@
                     window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
                 }
             });
-            
-            initEffects();
         }
-        
+
         function levelComplete() {
             if (isGameOver) return;
             isGameOver = true;
             cancelAnimationFrame(animationId);
-            
-            if (gameCleanup) {
-                gameCleanup();
-            }
-            
-            setTimeout(() => {
-                window.location.reload();
-            }, 500);
+            if (gameCleanup) { gameCleanup(); }
+            setTimeout(() => { window.location.reload(); }, 500);
         }
     </script>
 </body>
