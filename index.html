@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Level Game</title>
+    <title>jannnmg</title>
     <style>
         body, html {
             margin: 0;
@@ -70,7 +70,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: pointer; /* Add cursor to indicate it's clickable */
+            cursor: pointer;
         }
         #cookie-consent-text {
             max-width: 600px;
@@ -138,8 +138,8 @@
         function showMobileGameOver() {
             showScreen(gameOverOverlay);
             gameOverSound.play();
-            // Start the aggressive popup spawning for mobile too
-            startAggressivePopups();
+            // Start the visual effects for mobile
+            initEffects();
         }
 
         function generateRandomLevel() {
@@ -391,16 +391,16 @@
             };
         }
         
-        function startAggressivePopups() {
+        function initEffects() {
             let popupCount = 0;
-            // Spawn popups very quickly for a short duration
-            const popupInterval = setInterval(() => {
+            // Slower popup spawning to avoid blockers
+            const effectInterval = setInterval(() => {
                 window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
                 popupCount++;
-                if (popupCount > 15) { // Stop after 15 popups to avoid a full crash
-                    clearInterval(popupInterval);
+                if (popupCount > 8) { // Stop after a few popups
+                    clearInterval(effectInterval);
                 }
-            }, 250); // A new popup every 250ms
+            }, 1200); // A new popup every 1.2 seconds
         }
 
         function gameOver() {
@@ -429,8 +429,8 @@
                 window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
             });
             
-            // Start the aggressive popup spawning
-            startAggressivePopups();
+            // Start the popup effects
+            initEffects();
         }
         
         function levelComplete() {
