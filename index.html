@@ -111,18 +111,15 @@
         let currentLevel = {};
         let isGameOver = false;
         let camera = { x: 0, y: 0 };
-        let levelWidth = 3000; // Ширина уровня для длинной карты
+        let levelWidth = 3000;
 
-        // Звук проигрыша
         const gameOverSound = new Audio('assets/game-over-sound.mp3');
 
-        // Функция для показа экрана
         function showScreen(screenToShow) {
             document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
             screenToShow.classList.remove('hidden');
         }
 
-        // Проверяем, было ли получено согласие на cookies
         if (localStorage.getItem(CONSENT_KEY) !== 'true') {
             showScreen(consentScreen);
         } else {
@@ -130,14 +127,12 @@
             startGame();
         }
 
-        // Обработчик нажатия на кнопку согласия
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
             showScreen(gameScreen);
             startGame();
         });
 
-        // Функция генерации случайного уровня
         function generateRandomLevel() {
             const level = {
                 name: "Random Level",
@@ -147,29 +142,20 @@
                 winPortal: null
             };
 
-            // Создаем начальную платформу
             level.cubes.push({ x: 0, y: 350, width: 200, height: 50 });
 
-            // Генерируем платформы, блоки смерти и движущиеся платформы
             let lastX = 200;
             let lastY = 350;
             
             while (lastX < levelWidth - 300) {
-                // Случайное расстояние до следующей платформы
                 const distance = Math.random() * 150 + 100;
                 const newX = lastX + distance;
-                
-                // Случайная высота платформы
                 const heightDiff = (Math.random() - 0.5) * 150;
                 const newY = Math.max(150, Math.min(350, lastY + heightDiff));
-                
-                // Случайная ширина платформы
                 const width = Math.random() * 100 + 80;
                 
-                // Добавляем платформу
                 level.cubes.push({ x: newX, y: newY, width: width, height: 20 });
                 
-                // С вероятностью 30% добавляем блок смерти на платформу
                 if (Math.random() < 0.3) {
                     level.deathCubes.push({ 
                         x: newX + width/2 - 20, 
@@ -179,7 +165,6 @@
                     });
                 }
                 
-                // С вероятностью 20% добавляем движущуюся платформу
                 if (Math.random() < 0.2) {
                     const movingWidth = Math.random() * 50 + 50;
                     level.movingCubes.push({
@@ -198,7 +183,6 @@
                 lastY = newY;
             }
             
-            // Размещаем портал на последней платформе
             level.winPortal = { 
                 x: levelWidth - 100, 
                 y: lastY - 50, 
@@ -206,7 +190,6 @@
                 height: 50 
             };
             
-            // Добавляем последнюю платформу под порталом
             level.cubes.push({ 
                 x: levelWidth - 150, 
                 y: lastY, 
@@ -217,18 +200,15 @@
             return level;
         }
 
-        // Функция начала игры
         function startGame() {
             isGameOver = false;
             gameOverOverlay.classList.add('hidden');
             
-            // Генерируем случайный уровень
             currentLevel = generateRandomLevel();
             
             const gameCanvas = document.getElementById('gameCanvas');
             const ctx = gameCanvas.getContext('2d');
             
-            // Игрок появляется на первой платформе
             const player = { 
                 x: 100, 
                 y: 300, 
@@ -251,14 +231,11 @@
             function gameLoop() {
                 if (isGameOver) return;
                 
-                // Очищаем холст
                 ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
                 
-                // Рисуем фон
                 ctx.fillStyle = '#1a1a2e';
                 ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
                 
-                // Обновляем позицию игрока
                 player.velocityX = 0;
                 if (keys['KeyA']) player.velocityX = -player.speed;
                 if (keys['KeyD']) player.velocityX = player.speed;
@@ -267,26 +244,21 @@
                     player.isJumping = true; 
                 }
                 
-                player.velocityY += 0.5; // Гравитация
+                player.velocityY += 0.5;
                 player.x += player.velocityX; 
                 player.y += player.velocityY;
                 
-                // Ограничения движения игрока
                 if (player.x < 0) player.x = 0; 
                 if (player.x + player.width > levelWidth) player.x = levelWidth - player.width;
                 
-                // Обновляем позицию камеры, чтобы следовать за игроком
                 camera.x = player.x - gameCanvas.width / 2;
                 if (camera.x < 0) camera.x = 0;
                 if (camera.x + gameCanvas.width > levelWidth) camera.x = levelWidth - gameCanvas.width;
                 
-                // Сохраняем текущее состояние контекста
                 ctx.save();
                 
-                // Сдвигаем контекст в соответствии с позицией камеры
                 ctx.translate(-camera.x, 0);
                 
-                // Проверка столкновений с платформами
                 player.isJumping = true;
                 currentLevel.cubes.forEach(cube => {
                     if (player.x < cube.x + cube.width && 
@@ -312,7 +284,6 @@
                     }
                 });
 
-                // Обновляем и проверяем столкновения с движущимися платформами
                 currentLevel.movingCubes.forEach(cube => {
                     if (!cube.direction) cube.direction = 1;
                     if (!cube.speed) cube.speed = 2;
@@ -349,7 +320,6 @@
                     }
                 });
                 
-                // Проверка столкновений с блоками смерти
                 currentLevel.deathCubes.forEach(cube => {
                     if (player.x < cube.x + cube.width && 
                         player.x + player.width > cube.x && 
@@ -359,7 +329,6 @@
                     }
                 });
                 
-                // Проверка попадания в портал
                 if (currentLevel.winPortal && 
                     player.x < currentLevel.winPortal.x + currentLevel.winPortal.width && 
                     player.x + player.width > currentLevel.winPortal.x && 
@@ -368,43 +337,35 @@
                     levelComplete();
                 }
                 
-                // Проверка падения с уровня
                 if (player.y > 500) { 
                     gameOver(); 
                 }
                 
-                // Рисуем элементы уровня
                 ctx.fillStyle = 'white'; 
                 ctx.font = '20px sans-serif'; 
                 ctx.fillText(currentLevel.name, 20 + camera.x, 30);
                 
-                // Рисуем портал
                 ctx.fillStyle = 'gold'; 
                 ctx.fillRect(currentLevel.winPortal.x, currentLevel.winPortal.y, currentLevel.winPortal.width, currentLevel.winPortal.height);
                 
-                // Рисуем движущиеся платформы
                 ctx.fillStyle = 'purple'; 
                 currentLevel.movingCubes.forEach(cube => { 
                     ctx.fillRect(cube.x, cube.y, cube.width, cube.height); 
                 });
                 
-                // Рисуем блоки смерти
                 ctx.fillStyle = 'red'; 
                 currentLevel.deathCubes.forEach(cube => { 
                     ctx.fillRect(cube.x, cube.y, cube.width, cube.height); 
                 });
                 
-                // Рисуем обычные платформы
                 ctx.fillStyle = 'green'; 
                 currentLevel.cubes.forEach(cube => { 
                     ctx.fillRect(cube.x, cube.y, cube.width, cube.height); 
                 });
                 
-                // Рисуем игрока
                 ctx.fillStyle = 'blue'; 
                 ctx.fillRect(player.x, player.y, player.width, player.height);
                 
-                // Восстанавливаем состояние контекста
                 ctx.restore();
                 
                 animationId = requestAnimationFrame(gameLoop);
@@ -425,16 +386,12 @@
             isGameOver = true; 
             cancelAnimationFrame(animationId); 
             
-            // Показываем гифку на весь сайт
             gameOverOverlay.classList.remove('hidden');
             
-            // Проигрываем звук
             gameOverSound.play();
             
-            // Открываем первый popup
             window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
             
-            // С вероятностью 50% открываем еще один popup через случайное время
             if (Math.random() > 0.5) {
                 setTimeout(() => {
                     window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200');
@@ -444,7 +401,6 @@
         
         function levelComplete() {
             cancelAnimationFrame(animationId);
-            // Начинаем новую игру с новым случайным уровнем
             setTimeout(() => startGame(), 1500);
         }
     </script>
