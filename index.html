@@ -96,8 +96,6 @@
         <canvas id="gameCanvas" width="800" height="400"></canvas>
         <p>Controls: A/D to move, Space to jump</p>
     </div>
-        <!-- ВРЕМЕННАЯ КНОПКА СБРОСА -->
-    <button id="resetButton" style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: red; color: white; border: none; padding: 5px 10px; cursor: pointer;">Reset Site</button>
 
     <div id="game-over-overlay" class="screen hidden"></div>
 
@@ -415,13 +413,6 @@
                 window.location.reload();
             }, 500);
         }
-    </script>
-        <script>
-        document.getElementById('resetButton').addEventListener('click', function() {
-            localStorage.clear();
-            alert('Site data cleared! The page will now reload.');
-            window.location.reload();
-        });
     </script>
 </body>
 </html>
