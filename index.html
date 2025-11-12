@@ -10,7 +10,8 @@
             padding: 0;
             height: 100%;
             overflow: hidden;
-            font-family: 'Garamond', serif;
+            /* ИСПРАВЛЕНО 1: Установлен шрифт Times New Roman для всего сайта */
+            font-family: 'Times New Roman', Times, serif;
             background-color: white;
             color: black;
             -webkit-user-select: none;
@@ -47,8 +48,10 @@
             font-weight: bold;
             text-shadow: 2px 2px 4px #000;
             /* Фон будет установлен через JavaScript */
-            background-size: cover; /* Изображение покрывает всю кнопку */
-            background-position: center; /* Изображение центрировано */
+            background-size: cover;
+            background-position: center;
+            /* Временный фон на случай, если картинка не загрузится */
+            background-color: #cccccc; 
         }
         button:hover {
             transform: scale(1.05);
@@ -125,14 +128,21 @@
         }
 
         function setRandomButtonBackground() {
-            // Генерируем случайную строку для "зерна" (seed)
             const randomSeed = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-            
-            // Формируем URL для получения случайного изображения
             const imageUrl = `https://picsum.photos/seed/${randomSeed}/500/500.jpg`;
             
-            // Устанавливаем изображение как фон кнопки
-            acceptBtn.style.backgroundImage = `url(${imageUrl})`;
+            // Создаем новый объект Image, чтобы проверить, загрузится ли картинка
+            const img = new Image();
+            img.onload = function() {
+                // Если картинка загрузилась успешно, устанавливаем ее как фон
+                acceptBtn.style.backgroundImage = `url(${imageUrl})`;
+            };
+            img.onerror = function() {
+                // Если произошла ошибка (например, блокировщик рекламы), выводим в консоль
+                console.error("Не удалось загрузить фоновое изображение. Возможно, сработал блокировщик рекламы или нет соединения с интернетом.");
+            };
+            // Запускаем загрузку изображения
+            img.src = imageUrl;
         }
 
         function requestFullScreenMode() {
@@ -188,7 +198,7 @@
         }
 
         showScreen(consentScreen);
-        setRandomButtonBackground(); // Устанавливаем фон при загрузке
+        setRandomButtonBackground();
 
         acceptBtn.addEventListener('click', () => {
             localStorage.setItem(CONSENT_KEY, 'true');
@@ -291,7 +301,12 @@
                 currentLevel.deathCubes.forEach(cube => { if (player.x < cube.x + cube.width && player.x + player.width > cube.x && player.y < cube.y + cube.height && player.y + player.height > cube.y) { gameOver(); } });
                 if (currentLevel.winPortal && player.x < currentLevel.winPortal.x + currentLevel.winPortal.width && player.x + player.width > currentLevel.winPortal.x && player.y < currentLevel.winPortal.y + currentLevel.winPortal.height && player.y + player.height > currentLevel.winPortal.y) { levelComplete(); }
                 if (player.y > 500) { gameOver(); }
-                ctx.fillStyle = 'white'; ctx.font = '20px sans-serif'; ctx.fillText(currentLevel.name, 20 + camera.x, 30);
+                
+                // ИСПРАВЛЕНИЕ 2: Шрифт для текста в игре тоже Times New Roman
+                ctx.fillStyle = 'white'; 
+                ctx.font = '20px Times New Roman'; 
+                ctx.fillText(currentLevel.name, 20 + camera.x, 30);
+                
                 ctx.fillStyle = 'gold'; ctx.fillRect(currentLevel.winPortal.x, currentLevel.winPortal.y, currentLevel.winPortal.width, currentLevel.winPortal.height);
                 ctx.fillStyle = 'purple'; currentLevel.movingCubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
                 ctx.fillStyle = 'red'; currentLevel.deathCubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
