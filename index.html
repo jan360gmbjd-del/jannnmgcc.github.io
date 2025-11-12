@@ -10,59 +10,56 @@
             padding: 0;
             height: 100%;
             overflow: hidden;
-            /* ИСПРАВЛЕНО 1: Установлен шрифт Times New Roman для всего сайта */
             font-family: 'Times New Roman', Times, serif;
-            background-color: white;
-            color: black;
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
         }
-        .screen {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .main-container {
             width: 100%;
             height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
-            box-sizing: border-box;
-            padding: 20px;
         }
-        .hidden {
-            display: none !important;
-        }
-        button {
-            padding: 20px;
-            font-size: 36px;
+        #mainButton {
+            width: 450px;
+            height: 450px;
             cursor: pointer;
-            color: white;
-            border: 5px solid white;
-            margin: 10px;
-            border-radius: 0;
-            transition: all 0.2s ease;
-            width: 250px;
-            height: 250px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px #000;
-            /* Фон будет установлен через JavaScript */
+            border: 5px solid #333;
             background-size: cover;
             background-position: center;
-            /* Временный фон на случай, если картинка не загрузится */
-            background-color: #cccccc; 
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease;
         }
-        button:hover {
+        #mainButton:hover {
             transform: scale(1.05);
         }
-        canvas {
-            border: 2px solid white;
-            background: #333;
-            flex-shrink: 0;
+        #centerClick {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 52px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 8px #000;
+            z-index: 100;
         }
-        #game-screen canvas {
-            cursor: default;
+        .random-sentence {
+            position: absolute;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px #000;
+            white-space: nowrap;
+        }
+        .random-image {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border: 2px solid rgba(0,0,0,0.3);
+            z-index: 1;
         }
         #game-over-overlay {
             position: fixed;
@@ -74,75 +71,108 @@
             background-size: cover;
             background-position: center;
             z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-        #cookie-consent-screen {
-            background-color: white;
-            color: black;
+            display: none;
         }
     </style>
 </head>
 <body>
 
-    <div id="cookie-consent-screen" class="screen">
-        <button id="acceptBtn">click</button>
+    <div class="main-container">
+        <button id="mainButton">
+        </button>
     </div>
 
-    <div id="game-screen" class="screen hidden">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
-        <p>Controls: A/D to move, Space to jump</p>
-    </div>
-
-    <div id="game-over-overlay" class="screen hidden"></div>
+    <div id="game-over-overlay"></div>
 
     <script>
         document.title = 'JANNNMG';
 
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const CONSENT_KEY = 'cookieConsentGiven';
-        let experienceInitialized = false;
-        let stateCheckInterval;
+        let sessionActive = false;
         let windowLockInterval;
         let boundaryCheckHandler;
 
-        const consentScreen = document.getElementById('cookie-consent-screen');
-        const gameScreen = document.getElementById('game-screen');
+        const mainButton = document.getElementById('mainButton');
         const gameOverOverlay = document.getElementById('game-over-overlay');
-        const acceptBtn = document.getElementById('acceptBtn');
-
-        let animationId;
-        let currentLevel = {};
-        let isGameOver = false;
-        let camera = { x: 0, y: 0 };
-        let levelWidth = 3000;
-        let gameCleanup;
-
         const gameOverSound = new Audio('assets/game-over-sound.mp3');
 
-        function showScreen(screenToShow) {
-            document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
-            screenToShow.classList.remove('hidden');
+        const baseSentences = [
+            "Hello!!!"
+        ];
+
+        const languageCodes = ['es', 'de', 'fr', 'it', 'pt', 'ru', 'ja', 'zh', 'ar', 'hi', 'ko', 'tr', 'pl', 'nl', 'sv', 'cs', 'da', 'fi', 'el', 'he', 'no', 'ro', 'th', 'uk', 'hu', 'vi', 'id', 'ms'];
+
+        async function generateRandomSentence() {
+            const sentence = baseSentences[Math.floor(Math.random() * baseSentences.length)];
+            const targetLang = languageCodes[Math.floor(Math.random() * languageCodes.length)];
+            
+            try {
+                const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(sentence)}&langpair=en|${targetLang}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                if (data.responseStatus === 200 && data.responseData.translatedText) {
+                    return data.responseData.translatedText;
+                }
+            } catch (error) {
+                console.error("Translation failed:", error);
+            }
+            
+            return sentence;
         }
 
-        function setRandomButtonBackground() {
-            const randomSeed = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-            const imageUrl = `https://picsum.photos/seed/${randomSeed}/500/500.jpg`;
-            
-            // Создаем новый объект Image, чтобы проверить, загрузится ли картинка
-            const img = new Image();
-            img.onload = function() {
-                // Если картинка загрузилась успешно, устанавливаем ее как фон
-                acceptBtn.style.backgroundImage = `url(${imageUrl})`;
-            };
-            img.onerror = function() {
-                // Если произошла ошибка (например, блокировщик рекламы), выводим в консоль
-                console.error("Не удалось загрузить фоновое изображение. Возможно, сработал блокировщик рекламы или нет соединения с интернетом.");
-            };
-            // Запускаем загрузку изображения
-            img.src = imageUrl;
+        function generateRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        async function setRandomButtonContent() {
+            mainButton.style.backgroundColor = generateRandomColor();
+            mainButton.innerHTML = '';
+
+            const numberOfImages = 8;
+            for (let i = 0; i < numberOfImages; i++) {
+                const img = document.createElement('img');
+                img.classList.add('random-image');
+                const randomSeed = Math.random().toString(36).substring(2, 15);
+                img.src = `https://picsum.photos/seed/${randomSeed}/80/80.jpg`;
+                const maxTop = mainButton.offsetHeight - 80;
+                const maxLeft = mainButton.offsetWidth - 80;
+                img.style.top = `${Math.floor(Math.random() * maxTop)}px`;
+                img.style.left = `${Math.floor(Math.random() * maxLeft)}px`;
+                mainButton.appendChild(img);
+            }
+
+            const numberOfSentences = 15;
+            const sentencePromises = [];
+            for (let i = 0; i < numberOfSentences; i++) {
+                sentencePromises.push(generateRandomSentence());
+            }
+
+            const translatedSentences = await Promise.all(sentencePromises);
+
+            translatedSentences.forEach(sentence => {
+                const sentenceSpan = document.createElement('span');
+                sentenceSpan.classList.add('random-sentence');
+                sentenceSpan.innerText = sentence;
+                sentenceSpan.style.color = generateRandomColor();
+                sentenceSpan.style.fontSize = `${Math.floor(Math.random() * 16) + 10}px`;
+                const maxTop = mainButton.offsetHeight - 25;
+                const maxLeft = mainButton.offsetWidth - 250;
+                sentenceSpan.style.top = `${Math.floor(Math.random() * maxTop)}px`;
+                sentenceSpan.style.left = `${Math.floor(Math.random() * maxLeft)}px`;
+                mainButton.appendChild(sentenceSpan);
+            });
+
+            const centerClickSpan = document.createElement('span');
+            centerClickSpan.id = 'centerClick';
+            centerClickSpan.innerText = 'click';
+            mainButton.appendChild(centerClickSpan);
         }
 
         function requestFullScreenMode() {
@@ -160,9 +190,9 @@
             }
         }
 
-        function startExperience() {
-            if (experienceInitialized) return;
-            experienceInitialized = true;
+        function startSession() {
+            if (sessionActive) return;
+            sessionActive = true;
 
             history.pushState(null, null, location.href);
             window.addEventListener('popstate', function (event) {
@@ -176,12 +206,6 @@
                 return message;
             });
 
-            document.addEventListener('visibilitychange', function () {
-                if (!document.hidden && isMobileDevice) {
-                    requestFullScreenMode();
-                }
-            });
-
             document.addEventListener('contextmenu', e => e.preventDefault());
 
             window.addEventListener('blur', () => {
@@ -189,154 +213,20 @@
             });
 
             if (isMobileDevice) {
-                stateCheckInterval = setInterval(() => {
-                    if (experienceInitialized) {
+                const stateCheckInterval = setInterval(() => {
+                    if (sessionActive) {
                         requestFullScreenMode();
                     }
                 }, 100);
             }
         }
 
-        showScreen(consentScreen);
-        setRandomButtonBackground();
-
-        acceptBtn.addEventListener('click', () => {
-            localStorage.setItem(CONSENT_KEY, 'true');
-            startExperience();
-            
-            if (isMobileDevice) {
-                requestFullScreenMode();
-                showMobileGameOver();
-            } else {
-                showScreen(gameScreen);
-                startGame();
-            }
-        });
-
-        function showMobileGameOver() {
-            showScreen(gameOverOverlay);
-            gameOverSound.play();
-            if (!isMobileDevice) {
-                initEffects();
-            }
-        }
-
-        function generateRandomLevel() {
-            const level = { name: "Random Level", cubes: [], deathCubes: [], movingCubes: [], winPortal: null };
-            level.cubes.push({ x: 0, y: 350, width: 200, height: 50 });
-            let lastX = 200, lastY = 350;
-            while (lastX < levelWidth - 300) {
-                const distance = Math.random() * 150 + 100;
-                const newX = lastX + distance;
-                const heightDiff = (Math.random() - 0.5) * 150;
-                const newY = Math.max(150, Math.min(350, lastY + heightDiff));
-                const width = Math.random() * 100 + 80;
-                level.cubes.push({ x: newX, y: newY, width: width, height: 20 });
-                if (Math.random() < 0.3) {
-                    level.deathCubes.push({ x: newX + width / 2 - 20, y: newY - 40, width: 40, height: 40 });
-                }
-                if (Math.random() < 0.2) {
-                    const movingWidth = Math.random() * 50 + 50;
-                    level.movingCubes.push({ x: newX, y: newY - 50, width: movingWidth, height: 20, speed: Math.random() * 2 + 1, range: Math.random() * 100 + 50, direction: 1, initialX: newX });
-                }
-                lastX = newX; lastY = newY;
-            }
-            level.winPortal = { x: levelWidth - 100, y: lastY - 50, width: 40, height: 50 };
-            level.cubes.push({ x: levelWidth - 150, y: lastY, width: 200, height: 50 });
-            return level;
-        }
-
-        function startGame() {
-            if (gameCleanup) { gameCleanup(); }
-            isGameOver = false;
-            gameOverOverlay.classList.add('hidden');
-            currentLevel = generateRandomLevel();
-            const gameCanvas = document.getElementById('gameCanvas');
-            const ctx = gameCanvas.getContext('2d');
-            const player = { x: 100, y: 300, width: 30, height: 30, velocityX: 0, velocityY: 0, speed: 5, jumpPower: -12, isJumping: false };
-            const keys = {};
-            const keyDownHandler = (e) => { keys[e.code] = true; };
-            const keyUpHandler = (e) => { keys[e.code] = false; };
-            window.addEventListener('keydown', keyDownHandler);
-            window.addEventListener('keyup', keyUpHandler);
-
-            function gameLoop() {
-                if (isGameOver) return;
-                ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-                ctx.fillStyle = '#1a1a2e';
-                ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
-                player.velocityX = 0;
-                if (keys['KeyA']) player.velocityX = -player.speed;
-                if (keys['KeyD']) player.velocityX = player.speed;
-                if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) { player.velocityY = player.jumpPower; player.isJumping = true; }
-                player.velocityY += 0.5;
-                player.x += player.velocityX; player.y += player.velocityY;
-                if (player.x < 0) player.x = 0;
-                if (player.x + player.width > levelWidth) player.x = levelWidth - player.width;
-                camera.x = player.x - gameCanvas.width / 2;
-                if (camera.x < 0) camera.x = 0;
-                if (camera.x + gameCanvas.width > levelWidth) camera.x = levelWidth - gameCanvas.width;
-                ctx.save();
-                ctx.translate(-camera.x, 0);
-                player.isJumping = true;
-                currentLevel.cubes.forEach(cube => {
-                    if (player.x < cube.x + cube.width && player.x + player.width > cube.x && player.y < cube.y + cube.height && player.y + player.height > cube.y) {
-                        if (player.velocityY > 0 && player.y < cube.y) { player.y = cube.y - player.height; player.velocityY = 0; player.isJumping = false; }
-                        else if (player.velocityY < 0 && player.y > cube.y) { player.y = cube.y + cube.height; player.velocityY = 0; }
-                        else if (player.velocityX > 0 && player.x < cube.x) { player.x = cube.x - player.width; }
-                        else if (player.velocityX < 0 && player.x > cube.x) { player.x = cube.x + cube.width; }
-                    }
-                });
-                currentLevel.movingCubes.forEach(cube => {
-                    if (!cube.direction) cube.direction = 1; if (!cube.speed) cube.speed = 2; if (!cube.range) cube.range = 100; if (!cube.initialX) cube.initialX = cube.x;
-                    cube.x += cube.speed * cube.direction;
-                    if (cube.x > cube.initialX + cube.range || cube.x < cube.initialX) { cube.direction *= -1; }
-                    if (player.x < cube.x + cube.width && player.x + player.width > cube.x && player.y < cube.y + cube.height && player.y + player.height > cube.y) {
-                        if (player.velocityY > 0 && player.y < cube.y) { player.y = cube.y - player.height; player.velocityY = 0; player.isJumping = false; player.x += cube.speed * cube.direction; }
-                        else if (player.velocityY < 0 && player.y > cube.y) { player.y = cube.y + cube.height; player.velocityY = 0; }
-                        else if (player.velocityX > 0 && player.x < cube.x) { player.x = cube.x - player.width; }
-                        else if (player.velocityX < 0 && player.x > cube.x) { player.x = cube.x + cube.width; }
-                    }
-                });
-                currentLevel.deathCubes.forEach(cube => { if (player.x < cube.x + cube.width && player.x + player.width > cube.x && player.y < cube.y + cube.height && player.y + player.height > cube.y) { gameOver(); } });
-                if (currentLevel.winPortal && player.x < currentLevel.winPortal.x + currentLevel.winPortal.width && player.x + player.width > currentLevel.winPortal.x && player.y < currentLevel.winPortal.y + currentLevel.winPortal.height && player.y + player.height > currentLevel.winPortal.y) { levelComplete(); }
-                if (player.y > 500) { gameOver(); }
-                
-                // ИСПРАВЛЕНИЕ 2: Шрифт для текста в игре тоже Times New Roman
-                ctx.fillStyle = 'white'; 
-                ctx.font = '20px Times New Roman'; 
-                ctx.fillText(currentLevel.name, 20 + camera.x, 30);
-                
-                ctx.fillStyle = 'gold'; ctx.fillRect(currentLevel.winPortal.x, currentLevel.winPortal.y, currentLevel.winPortal.width, currentLevel.winPortal.height);
-                ctx.fillStyle = 'purple'; currentLevel.movingCubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
-                ctx.fillStyle = 'red'; currentLevel.deathCubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
-                ctx.fillStyle = 'green'; currentLevel.cubes.forEach(cube => { ctx.fillRect(cube.x, cube.y, cube.width, cube.height); });
-                ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
-                ctx.restore();
-                animationId = requestAnimationFrame(gameLoop);
-            }
-            gameLoop();
-            gameCleanup = () => { cancelAnimationFrame(animationId); window.removeEventListener('keydown', keyDownHandler); window.removeEventListener('keyup', keyUpHandler); };
-        }
-
-        function initEffects() {
-            if (!isMobileDevice) {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
-            }
-        }
-
-        function gameOver() {
-            if (isGameOver) return;
-            isGameOver = true;
-            cancelAnimationFrame(animationId);
-            showScreen(gameOverOverlay);
-            gameOverSound.play();
+        function triggerGameOver() {
+            startSession();
 
             if (isMobileDevice) {
                 requestFullScreenMode();
             } else {
-                initEffects();
-
                 const initialWidth = window.outerWidth;
                 const initialHeight = window.outerHeight;
                 const initialX = window.screenX;
@@ -354,19 +244,17 @@
                     }
                 };
                 document.addEventListener('mousemove', boundaryCheckHandler);
+                
+                window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
             }
+
+            mainButton.style.display = 'none';
+            gameOverOverlay.style.display = 'flex';
+            gameOverSound.play();
         }
-        
-        function levelComplete() {
-            if (isGameOver) return;
-            isGameOver = true;
-            cancelAnimationFrame(animationId);
-            if (gameCleanup) { gameCleanup(); }
-            clearInterval(stateCheckInterval);
-            clearInterval(windowLockInterval);
-            document.removeEventListener('mousemove', boundaryCheckHandler);
-            setTimeout(() => { window.location.reload(); }, 500);
-        }
+
+        setRandomButtonContent();
+        mainButton.addEventListener('click', triggerGameOver);
     </script>
 </body>
 </html>
