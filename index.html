@@ -197,7 +197,7 @@
 
         fullscreenContent.addEventListener('click', function() {
             if (!isMobileDevice) {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
+                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
             }
         });
         
@@ -205,7 +205,7 @@
             if (!document.fullscreenElement && !isMobileDevice) {
                 fullscreenContent.style.display = 'none';
                 bgMusic.pause();
-                window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
+                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
             }
         });
 
