@@ -47,20 +47,13 @@
             text-shadow: 2px 2px 8px #000;
             z-index: 100;
         }
-        .random-sentence {
-            position: absolute;
-            font-weight: bold;
-            text-shadow: 1px 1px 3px #000;
-            white-space: nowrap;
-            z-index: 50;
-        }
         .random-image {
             position: absolute;
             object-fit: cover;
             border: 2px solid rgba(0,0,0,0.3);
             z-index: 1;
         }
-        #game-over-overlay {
+        #fullscreenContent {
             position: fixed;
             top: 0;
             left: 0;
@@ -69,23 +62,25 @@
             background-image: url('assets/game-over.gif');
             background-size: cover;
             background-position: center;
+            display: none;
             z-index: 1000;
-            display: none;
         }
-        .fullscreen-message {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
+        
+        #exitButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
             font-size: 24px;
-            text-shadow: 2px 2px 4px #000;
-            z-index: 1001;
-            display: none;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
     </style>
 </head>
@@ -96,9 +91,11 @@
         </button>
     </div>
 
-    <div id="game-over-overlay"></div>
-    <div class="fullscreen-message" id="fullscreenMessage">
-        Нажмите ESC для выхода из полноэкранного режима
+    <div id="fullscreenContent">
+        <button id="exitButton">×</button>
+        <audio id="bgMusic" loop>
+            <source src="assets/game-over-sound.mp3" type="audio/mpeg">
+        </audio>
     </div>
 
     <script>
@@ -106,61 +103,11 @@
 
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         let sessionActive = false;
-        let windowLockInterval;
-        let boundaryCheckHandler;
-        let fullscreenMode = false;
-        let popupStarted = false;
 
         const mainButton = document.getElementById('mainButton');
-        const gameOverOverlay = document.getElementById('game-over-overlay');
-        const gameOverSound = new Audio('assets/game-over-sound.mp3');
-        const fullscreenMessage = document.getElementById('fullscreenMessage');
-
-        const baseSentences = [
-            "The system processes data.",
-            "A random user finds a secret button.",
-            "The code launches an unknown process.",
-            "The signal is suddenly lost.",
-            "An important file is deleted.",
-            "The window shows a dangerous error.",
-            "The world waits for a new update.",
-            "The packet travels everywhere.",
-            "The green light flashes constantly.",
-            "The first connection is temporary."
-        ];
-
-        const languageCodes = ['es', 'de', 'fr', 'it', 'pt', 'ru', 'ja', 'zh', 'ar', 'hi', 'ko', 'tr', 'pl', 'nl', 'sv', 'cs', 'da', 'fi', 'el', 'he', 'no', 'ro', 'th', 'uk', 'hu', 'vi', 'id', 'ms'];
-
-        function generateGibberishSentence() {
-            const chars = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяabcdefghijklmnopqrstuvwxyz ';
-            let length = Math.floor(Math.random() * 40) + 20;
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            const punctuation = ['.', '!', '?', '。', '！', '？'];
-            return result.trim() + punctuation[Math.floor(Math.random() * punctuation.length)];
-        }
-
-        async function generateRandomSentence() {
-            const sentence = baseSentences[Math.floor(Math.random() * baseSentences.length)];
-            const targetLang = languageCodes[Math.floor(Math.random() * languageCodes.length)];
-            
-            try {
-                const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(sentence)}&langpair=en|${targetLang}&cb=${Date.now()}`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                if (data.responseStatus === 200 && data.responseData.translatedText) {
-                    return data.responseData.translatedText;
-                }
-            } catch (error) {
-                console.error("Translation failed:", error);
-            }
-            
-            return generateGibberishSentence();
-        }
+        const fullscreenContent = document.getElementById('fullscreenContent');
+        const exitButton = document.getElementById('exitButton');
+        const bgMusic = document.getElementById('bgMusic');
 
         function generateRandomColor() {
             const letters = '0123456789ABCDEF';
@@ -171,7 +118,7 @@
             return color;
         }
 
-        async function setRandomButtonContent() {
+        function setRandomButtonContent() {
             mainButton.style.cursor = 'wait';
             mainButton.style.backgroundColor = generateRandomColor();
             mainButton.innerHTML = '';
@@ -194,27 +141,6 @@
                 
                 mainButton.appendChild(img);
             }
-
-            const numberOfSentences = 35;
-            const sentencePromises = [];
-            for (let i = 0; i < numberOfSentences; i++) {
-                sentencePromises.push(generateRandomSentence());
-            }
-
-            const translatedSentences = await Promise.all(sentencePromises);
-
-            translatedSentences.forEach(sentence => {
-                const sentenceSpan = document.createElement('span');
-                sentenceSpan.classList.add('random-sentence');
-                sentenceSpan.innerText = sentence;
-                sentenceSpan.style.color = generateRandomColor();
-                sentenceSpan.style.fontSize = `${Math.floor(Math.random() * 16) + 10}px`;
-                const maxTop = mainButton.offsetHeight - 25;
-                const maxLeft = mainButton.offsetWidth - 250;
-                sentenceSpan.style.top = `${Math.floor(Math.random() * maxTop)}px`;
-                sentenceSpan.style.left = `${Math.floor(Math.random() * maxLeft)}px`;
-                mainButton.appendChild(sentenceSpan);
-            });
 
             const centerClickSpan = document.createElement('span');
             centerClickSpan.id = 'centerClick';
@@ -239,27 +165,13 @@
             }
         }
 
-        function requestPointerLock() {
-            if (!isMobileDevice) {
-                document.documentElement.requestPointerLock = 
-                    document.documentElement.requestPointerLock ||
-                    document.documentElement.mozRequestPointerLock ||
-                    document.documentElement.webkitRequestPointerLock;
-                
-                if (document.documentElement.requestPointerLock) {
-                    document.documentElement.requestPointerLock();
-                }
-            }
-        }
-
-        function exitPointerLock() {
-            document.exitPointerLock = 
-                document.exitPointerLock ||
-                document.mozExitPointerLock ||
-                document.webkitExitPointerLock;
-            
-            if (document.exitPointerLock) {
-                document.exitPointerLock();
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
             }
         }
 
@@ -294,98 +206,44 @@
             }
         }
 
-        function startPopups() {
-            if (popupStarted) return;
-            popupStarted = true;
-            
-            if (!isMobileDevice) {
-                const initialWidth = window.outerWidth;
-                const initialHeight = window.outerHeight;
-                const initialX = window.screenX;
-                const initialY = window.screenY;
-
-                windowLockInterval = setInterval(() => {
-                    window.resizeTo(initialWidth, initialHeight);
-                    window.moveTo(initialX, initialY);
-                    window.focus();
-                }, 50);
-
-                boundaryCheckHandler = (e) => {
-                    if (e.clientY > window.innerHeight - 100) {
-                        window.moveTo(initialX, initialY - 80);
-                    }
-                };
-                document.addEventListener('mousemove', boundaryCheckHandler);
-                
-                window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
-            }
-        }
-
-        function triggerGameOver() {
+        function triggerFullScreen() {
             startSession();
             requestFullScreenMode();
-            requestPointerLock();
+            fullscreenContent.style.display = 'block';
+            bgMusic.play();
             
-            // Показываем сообщение о полноэкранном режиме
-            fullscreenMessage.style.display = 'block';
-            setTimeout(() => {
-                fullscreenMessage.style.display = 'none';
-            }, 3000);
-            
-            mainButton.style.display = 'none';
-            gameOverOverlay.style.display = 'flex';
-            gameOverSound.play();
-        }
-
-        // Обработчики событий для полноэкранного режима
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-        function handleFullscreenChange() {
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && 
-                !document.mozFullScreenElement && !document.msFullscreenElement) {
-                // Выход из полноэкранного режима
-                fullscreenMode = false;
-                exitPointerLock();
-                
-                // Запускаем popup окна только если сессия активна
-                if (sessionActive && !popupStarted) {
-                    startPopups();
-                }
-            } else {
-                // Вход в полноэкранный режим
-                fullscreenMode = true;
-                requestPointerLock();
+            if (isMobileDevice) {
+                document.addEventListener('backbutton', function(e) {
+                    e.preventDefault();
+                    if (confirm("Вы уверены, что хотите выйти?")) {
+                        exitFullscreen();
+                        fullscreenContent.style.display = 'none';
+                        bgMusic.pause();
+                    }
+                }, false);
             }
         }
 
-        // Обработчик для Pointer Lock
-        document.addEventListener('pointerlockchange', lockStateChange, false);
-        document.addEventListener('mozpointerlockchange', lockStateChange, false);
-        document.addEventListener('webkitpointerlockchange', lockStateChange, false);
-
-        function lockStateChange() {
-            if (document.pointerLockElement === document.documentElement ||
-                document.mozPointerLockElement === document.documentElement ||
-                document.webkitPointerLockElement === document.documentElement) {
-                // Курсор заблокирован
-                document.addEventListener("mousemove", updatePosition, false);
-            } else {
-                // Курсор разблокирован
-                document.removeEventListener("mousemove", updatePosition, false);
+        exitButton.addEventListener('click', function() {
+            exitFullscreen();
+            fullscreenContent.style.display = 'none';
+            bgMusic.pause();
+            
+            if (!isMobileDevice) {
+                window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
             }
-        }
-
-        function updatePosition(e) {
-            // Обработка движения мыши в режиме блокировки курсора
-            // Эта функция может быть использована для обновления позиции курсора
-            // или для других действий, которые требуют отслеживания движения мыши
-        }
+        });
+        
+        document.addEventListener('fullscreenchange', function() {
+            if (!document.fullscreenElement && !isMobileDevice) {
+                fullscreenContent.style.display = 'none';
+                bgMusic.pause();
+                window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
+            }
+        });
 
         setRandomButtonContent();
-        mainButton.addEventListener('click', triggerGameOver);
+        mainButton.addEventListener('click', triggerFullScreen);
     </script>
 </body>
 </html>
