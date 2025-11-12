@@ -23,8 +23,8 @@
             align-items: center;
         }
         #mainButton {
-            width: 500px;
-            height: 500px;
+            width: 400px;
+            height: 300px;
             cursor: pointer;
             border: 5px solid #333;
             background-size: cover;
@@ -96,16 +96,7 @@
         const gameOverSound = new Audio('assets/game-over-sound.mp3');
 
         const baseSentences = [
-            "The system processes data.",
-            "A random user finds a secret button.",
-            "The code launches an unknown process.",
-            "The signal is suddenly lost.",
-            "An important file is deleted.",
-            "The window shows a dangerous error.",
-            "The world waits for a new update.",
-            "The packet travels everywhere.",
-            "The green light flashes constantly.",
-            "The first connection is temporary."
+            "Hello!!!"
         ];
 
         const languageCodes = ['es', 'de', 'fr', 'it', 'pt', 'ru', 'ja', 'zh', 'ar', 'hi', 'ko', 'tr', 'pl', 'nl', 'sv', 'cs', 'da', 'fi', 'el', 'he', 'no', 'ro', 'th', 'uk', 'hu', 'vi', 'id', 'ms'];
@@ -154,8 +145,6 @@
                 img.src = `https://picsum.photos/seed/${randomSeed}/${randomWidth}/${randomHeight}.jpg`;
                 img.style.width = `${randomWidth}px`;
                 img.style.height = `${randomHeight}px`;
-                
-                // НОВАЯ ЛОГИКА ПОЗИЦИОНИРОВАНИЯ
                 const centerX = Math.random() * mainButton.offsetWidth;
                 const centerY = Math.random() * mainButton.offsetHeight;
                 img.style.left = `${centerX - randomWidth / 2}px`;
