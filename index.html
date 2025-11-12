@@ -66,24 +66,6 @@
             z-index: 1000;
             cursor: pointer;
         }
-        
-        #exitButton {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background-color: rgba(255, 255, 255, 0.5);
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
-        }
     </style>
 </head>
 <body>
@@ -94,7 +76,6 @@
     </div>
 
     <div id="fullscreenContent">
-        <button id="exitButton">×</button>
         <audio id="bgMusic" loop>
             <source src="assets/game-over-sound.mp3" type="audio/mpeg">
         </audio>
@@ -108,7 +89,6 @@
 
         const mainButton = document.getElementById('mainButton');
         const fullscreenContent = document.getElementById('fullscreenContent');
-        const exitButton = document.getElementById('exitButton');
         const bgMusic = document.getElementById('bgMusic');
 
         function generateRandomColor() {
@@ -167,16 +147,6 @@
             }
         }
 
-        function exitFullscreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
-        }
-
         function startSession() {
             if (sessionActive) return;
             sessionActive = true;
@@ -218,7 +188,6 @@
                 document.addEventListener('backbutton', function(e) {
                     e.preventDefault();
                     if (confirm("Вы уверены, что хотите выйти?")) {
-                        exitFullscreen();
                         fullscreenContent.style.display = 'none';
                         bgMusic.pause();
                     }
@@ -226,18 +195,8 @@
             }
         }
 
-        exitButton.addEventListener('click', function() {
-            exitFullscreen();
-            fullscreenContent.style.display = 'none';
-            bgMusic.pause();
-            
+        fullscreenContent.addEventListener('click', function() {
             if (!isMobileDevice) {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
-            }
-        });
-
-        fullscreenContent.addEventListener('click', function(e) {
-            if (e.target.id !== 'exitButton' && !isMobileDevice) {
                 window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
             }
         });
