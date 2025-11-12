@@ -23,8 +23,8 @@
     </audio>
     
     <script>
-        let x = Math.random() * (screen.availWidth - 650);
-        let y = Math.random() * (screen.availHeight - 650);
+        let x = Math.random() * (screen.availWidth - 450);
+        let y = Math.random() * (screen.availHeight - 450);
         let vx = (Math.random() - 0.5) * 10;
         let vy = (Math.random() - 0.5) * 10;
         let stuckToCursor = false;
@@ -56,7 +56,7 @@
         
         function createNewPopup() {
             setTimeout(() => {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
+                window.open('popup.html', 'popup_' + Date.now(), 'width=450,height=450,resizable=no,scrollbars=no,toolbar=no');
                 createNewPopup();
             }, Math.random() * 2000 + 4000);
         }
@@ -87,4 +87,5 @@
     </script>
 </body>
 </html>
+
 
