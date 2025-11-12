@@ -64,6 +64,7 @@
             background-position: center;
             display: none;
             z-index: 1000;
+            cursor: pointer;
         }
         
         #exitButton {
@@ -81,6 +82,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            z-index: 1001;
         }
     </style>
 </head>
@@ -230,6 +232,12 @@
             bgMusic.pause();
             
             if (!isMobileDevice) {
+                window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
+            }
+        });
+
+        fullscreenContent.addEventListener('click', function(e) {
+            if (e.target.id !== 'exitButton' && !isMobileDevice) {
                 window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
             }
         });
