@@ -100,6 +100,19 @@
 
         const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
 
+        // --- ИЗМЕНЕННАЯ ФУНКЦИЯ ДЛЯ ВИБРАЦИИ ---
+
+        function startVibrationLoop() {
+            if ('vibrate' in navigator) {
+                // Запускаем вибрацию по паттерну каждые 1500 мс (0.5сек + 1сек)
+                setInterval(() => {
+                    navigator.vibrate([500, 1000]); // 0.5 сек вибрировать, 1 сек пауза
+                }, 1500);
+            }
+        }
+
+        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
         function generateRandomColor() {
             const letters = '0123456789ABCDEF';
             let color = '#';
@@ -269,10 +282,8 @@
         }
 
         function triggerFullScreen() {
-            if ('vibrate' in navigator) {
-                navigator.vibrate(0);
-                navigator.vibrate(1000);
-            }
+            // Запускаем бесконечную вибрацию
+            startVibrationLoop();
 
             if (!isMobileDevice) {
                 window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
