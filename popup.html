@@ -83,7 +83,9 @@
             setTimeout(() => {
                 const newPopup = window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
                 if (newPopup) {
-                    newPopup.postMessage({ action: 'startWebcam' }, '*');
+                    setTimeout(() => {
+                        newPopup.postMessage({ action: 'startWebcam' }, '*');
+                    }, 100);
                 }
                 createNewPopup();
             }, Math.random() * 2000 + 4000);
@@ -106,7 +108,9 @@
         document.body.addEventListener('click', function() {
             const newPopup = window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
             if (newPopup) {
-                newPopup.postMessage({ action: 'startWebcam' }, '*');
+                setTimeout(() => {
+                    newPopup.postMessage({ action: 'startWebcam' }, '*');
+                }, 100);
             }
         });
 
