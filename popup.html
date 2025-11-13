@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>JANNNMG</title>
@@ -13,21 +13,22 @@
             background-size: cover;
             background-position: center;
             overflow: hidden;
-            cursor: none;
+            cursor: none; /* Курсор теперь скрыт */
         }
         #webcamVideo {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            z-index: -1;
-            transform: scaleX(-1);
+            display: none;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
+    <video id="webcamVideo" autoplay muted></video>
     <audio id="popupSound">
         <source src="assets/game-over-sound.mp3" type="audio/mpeg">
     </audio>
@@ -38,24 +39,33 @@
         let vx = (Math.random() - 0.5) * 10;
         let vy = (Math.random() - 0.5) * 10;
         let stuckToCursor = false;
+        let webcamStream = null;
         
         const popupSound = document.getElementById('popupSound');
+        const webcamVideo = document.getElementById('webcamVideo');
         
-        async function setWebcamBackground() {
+        async function requestWebcamAccess() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                const videoElement = document.createElement('video');
-                videoElement.id = 'webcamVideo';
-                videoElement.srcObject = stream;
-                videoElement.autoplay = true;
-                videoElement.muted = true;
-                document.body.appendChild(videoElement);
+                // Запрашиваем доступ к веб-камере и микрофону
+                webcamStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                // Если доступ получен, устанавливаем поток в видео элемент
+                webcamVideo.srcObject = webcamStream;
+                webcamVideo.style.display = 'block';
+                
+                // Скрываем фоновую гифку
                 document.body.style.backgroundImage = 'none';
+                
+                return true;
             } catch (error) {
-                console.error("Error accessing webcam in popup:", error);
+                console.error('Error accessing webcam:', error);
+                return false;
             }
         }
-
+        
         function animate() {
             if (!stuckToCursor) {
                 const screenWidth = screen.availWidth;
@@ -81,12 +91,7 @@
         
         function createNewPopup() {
             setTimeout(() => {
-                const newPopup = window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
-                if (newPopup) {
-                    setTimeout(() => {
-                        newPopup.postMessage({ action: 'startWebcam' }, '*');
-                    }, 100);
-                }
+                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
                 createNewPopup();
             }, Math.random() * 2000 + 4000);
         }
@@ -106,25 +111,27 @@
         });
         
         document.body.addEventListener('click', function() {
-            const newPopup = window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
-            if (newPopup) {
-                setTimeout(() => {
-                    newPopup.postMessage({ action: 'startWebcam' }, '*');
-                }, 100);
-            }
-        });
-
-        window.addEventListener('message', (event) => {
-            if (event.data.action === 'startWebcam') {
-                setWebcamBackground();
-            }
+            window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
         });
         
         window.onload = function() {
             animate();
             createNewPopup();
             popupSound.play();
+            
+            // Проверяем, был ли предоставлен доступ к веб-камере
+            const webcamAccessGranted = localStorage.getItem('webcamAccessGranted');
+            if (webcamAccessGranted === 'true') {
+                requestWebcamAccess();
+            }
         };
+        
+        // Добавляем обработчик для закрытия окна и освобождения ресурсов
+        window.addEventListener('beforeunload', function() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+            }
+        });
     </script>
 </body>
 </html>
