@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>JANNNMG</title>
@@ -13,58 +13,30 @@
             background-size: cover;
             background-position: center;
             overflow: hidden;
-            cursor: none; /* Курсор теперь скрыт */
-        }
-        #webcamVideo {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none;
-            z-index: 10;
+            cursor: none;
         }
     </style>
 </head>
 <body>
-    <video id="webcamVideo" autoplay muted></video>
     <audio id="popupSound">
         <source src="assets/game-over-sound.mp3" type="audio/mpeg">
     </audio>
     
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const imageUrl = urlParams.get('image');
+        
+        if (imageUrl) {
+            document.body.style.backgroundImage = `url(${imageUrl})`;
+        }
+        
         let x = Math.random() * (screen.availWidth - 350);
         let y = Math.random() * (screen.availHeight - 350);
         let vx = (Math.random() - 0.5) * 10;
         let vy = (Math.random() - 0.5) * 10;
         let stuckToCursor = false;
-        let webcamStream = null;
         
         const popupSound = document.getElementById('popupSound');
-        const webcamVideo = document.getElementById('webcamVideo');
-        
-        async function requestWebcamAccess() {
-            try {
-                // Запрашиваем доступ к веб-камере и микрофону
-                webcamStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: true, 
-                    audio: true 
-                });
-                
-                // Если доступ получен, устанавливаем поток в видео элемент
-                webcamVideo.srcObject = webcamStream;
-                webcamVideo.style.display = 'block';
-                
-                // Скрываем фоновую гифку
-                document.body.style.backgroundImage = 'none';
-                
-                return true;
-            } catch (error) {
-                console.error('Error accessing webcam:', error);
-                return false;
-            }
-        }
         
         function animate() {
             if (!stuckToCursor) {
@@ -91,7 +63,8 @@
         
         function createNewPopup() {
             setTimeout(() => {
-                window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
+                const popupUrl = imageUrl ? `popup.html?image=${encodeURIComponent(imageUrl)}` : 'popup.html';
+                window.open(popupUrl, 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
                 createNewPopup();
             }, Math.random() * 2000 + 4000);
         }
@@ -111,27 +84,15 @@
         });
         
         document.body.addEventListener('click', function() {
-            window.open('popup.html', 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
+            const popupUrl = imageUrl ? `popup.html?image=${encodeURIComponent(imageUrl)}` : 'popup.html';
+            window.open(popupUrl, 'popup_' + Date.now(), 'width=350,height=350,resizable=no,scrollbars=no,toolbar=no');
         });
         
         window.onload = function() {
             animate();
             createNewPopup();
             popupSound.play();
-            
-            // Проверяем, был ли предоставлен доступ к веб-камере
-            const webcamAccessGranted = localStorage.getItem('webcamAccessGranted');
-            if (webcamAccessGranted === 'true') {
-                requestWebcamAccess();
-            }
         };
-        
-        // Добавляем обработчик для закрытия окна и освобождения ресурсов
-        window.addEventListener('beforeunload', function() {
-            if (webcamStream) {
-                webcamStream.getTracks().forEach(track => track.stop());
-            }
-        });
     </script>
 </body>
 </html>
