@@ -11,6 +11,7 @@
             background-color: white;
             height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-family: 'Times New Roman', Times, serif;
@@ -23,7 +24,23 @@
             font-family: 'Times New Roman', Times, serif;
             font-size: 24px;
             color: #000000;
-            text-shadow: none;
+        }
+        .download-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #C0C0C0;
+            border: 2px solid;
+            border-color: #FFFFFF #808080 #808080 #FFFFFF;
+            padding: 8px 16px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+        }
+        .download-btn:active {
+            border-color: #808080 #FFFFFF #FFFFFF #808080;
+            padding: 9px 15px 7px 17px;
         }
         .win98-button {
             background-color: #C0C0C0;
@@ -31,39 +48,19 @@
             border-color: #FFFFFF #808080 #808080 #FFFFFF;
             padding: 20px 40px;
             font-size: 24px;
-            font-family: 'Times New Roman', Times, serif;
             font-weight: bold;
             cursor: pointer;
             color: #000000;
             text-transform: uppercase;
             letter-spacing: 2px;
-            outline: none;
-            box-shadow: none;
-            position: relative;
-        }
-        .win98-button:hover {
-            background-color: #C0C0C0;
-            border-color: #FFFFFF #808080 #808080 #FFFFFF;
+            margin-top: 20px;
         }
         .win98-button:active {
             border-color: #808080 #FFFFFF #FFFFFF #808080;
             padding: 21px 39px 19px 41px;
         }
-        .win98-button:focus {
-            outline: 1px dotted #000000;
-            outline-offset: -4px;
-        }
         .content {
             text-align: center;
-        }
-        #gameCanvas {
-            display: none;
-            border: 4px double #808080;
-            background-color: #FFFFFF;
-            image-rendering: crisp-edges;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges;
         }
         .hidden-content {
             display: none;
@@ -72,8 +69,9 @@
             background-color: #C0C0C0;
             border: 2px solid;
             border-color: #FFFFFF #808080 #808080 #FFFFFF;
-            font-family: monospace;
+            font-family: 'MS Sans Serif', sans-serif;
             font-size: 14px;
+            max-width: 500px;
         }
         .window-title {
             background: linear-gradient(to right, #000080, #1084D0);
@@ -100,342 +98,43 @@
         .close-button:active {
             border-color: #808080 #FFFFFF #FFFFFF #808080;
         }
-        #restartBtn, #restartBtnWin {
-            margin-top: 15px;
-        }
     </style>
 </head>
 <body>
     <div class="welcome">welcome to jannnmgc web</div>
+    <button class="download-btn" onclick="downloadFile()">Download</button>
+
     <div class="content">
         <button class="win98-button" onclick="showContent()">
             CLICK HERE!!!
         </button>
-        <canvas id="gameCanvas" width="900" height="500" tabindex="0"></canvas>
-      
-        <div id="gameOver" class="hidden-content">
+    
+        <div id="hiddenContent" class="hidden-content">
             <div class="window-title">
-                <span>Game Over</span>
-                <button class="close-button" onclick="restart()">X</button>
+                <span>System Message</span>
+                <button class="close-button" onclick="hideContent()">X</button>
             </div>
-            <p>You Died!</p>
-            <button class="win98-button" id="restartBtn" onclick="restart()">RESTART LEVEL</button>
-        </div>
-      
-        <div id="winContent" class="hidden-content">
-            <div class="window-title">
-                <span>Level Complete</span>
-                <button class="close-button" onclick="restart()">X</button>
-            </div>
-            <p>You Win!</p>
-            <button class="win98-button" id="restartBtnWin" onclick="restart()">PLAY AGAIN</button>
+            <p>Поздравляю! Ты нашел секретное сообщение!</p>
+            <p>Этот сайт создан в стиле Windows 98 с пиксельной графикой.</p>
+            <p>Нажми на X чтобы закрыть это окно.</p>
         </div>
     </div>
+
     <script>
-        // Game globals
-        let canvas, ctx;
-        let cameraX = 0, cameraY = 0;
-        let gameState = 'menu';
-        let keys = {};
-        const gravity = 0.8;
-        const jumpPower = -17;
-        const walkSpeed = 4.8;
-        const blockSize = 48;
-        const worldGroundY = 450;
-        const worldWidth = 3200;
-        const worldHeight = 600;
-
-        const player = {
-            worldX: 120,
-            worldY: worldGroundY - blockSize,
-            width: blockSize,
-            height: blockSize,
-            vx: 0,
-            vy: 0,
-            onGround: true
-        };
-
-        const platforms = [
-            // Start ground
-            {worldX: 0, worldY: worldGroundY - blockSize, width: 400, height: blockSize, type: 'platform'},
-            // Gap
-            {worldX: 550, worldY: worldGroundY - blockSize, width: 150, height: blockSize, type: 'platform'},
-            // Climb
-            {worldX: 750, worldY: worldGroundY - 2 * blockSize, width: 120, height: blockSize, type: 'platform'},
-            {worldX: 900, worldY: worldGroundY - 3 * blockSize, width: 100, height: blockSize, type: 'platform'},
-            // Ground
-            {worldX: 1050, worldY: worldGroundY - blockSize, width: 250, height: blockSize, type: 'platform'},
-            // High platform
-            {worldX: 1350, worldY: worldGroundY - 4 * blockSize, width: 180, height: blockSize, type: 'platform'},
-            // Long ground
-            {worldX: 1600, worldY: worldGroundY - blockSize, width: 400, height: blockSize, type: 'platform'},
-            // Tall wall
-            {worldX: 2050, worldY: worldGroundY - 5 * blockSize, width: blockSize, height: 5 * blockSize, type: 'platform'},
-            // After wall
-            {worldX: 2150, worldY: worldGroundY - blockSize, width: 200, height: blockSize, type: 'platform'},
-            // Final climb
-            {worldX: 2400, worldY: worldGroundY - 2 * blockSize, width: 140, height: blockSize, type: 'platform'},
-            // End ground
-            {worldX: 2550, worldY: worldGroundY - blockSize, width: 800, height: blockSize, type: 'platform'}
-        ];
-
-        const hazards = [
-            // In gap
-            {worldX: 450, worldY: worldGroundY - blockSize, width: blockSize, height: blockSize, type: 'hazard'},
-            // Floating
-            {worldX: 800, worldY: worldGroundY - 2.5 * blockSize, width: blockSize, height: blockSize, type: 'hazard'},
-            // Stack
-            {worldX: 1300, worldY: worldGroundY - 2 * blockSize, width: blockSize, height: 2 * blockSize, type: 'hazard'},
-            // Below high
-            {worldX: 1520, worldY: worldGroundY - blockSize, width: blockSize, height: blockSize, type: 'hazard'},
-            // Before wall
-            {worldX: 1980, worldY: worldGroundY - 2 * blockSize, width: blockSize, height: blockSize, type: 'hazard'},
-            // Final deadly
-            {worldX: 2650, worldY: worldGroundY - 2 * blockSize, width: blockSize, height: blockSize, type: 'hazard'},
-            // Another floating
-            {worldX: 2250, worldY: worldGroundY - 3 * blockSize, width: blockSize, height: blockSize, type: 'hazard'}
-        ];
-
-        const portal = {
-            worldX: 3050,
-            worldY: worldGroundY - 2 * blockSize,
-            width: blockSize,
-            height: blockSize,
-            type: 'portal'
-        };
-
-        function rectsOverlap(a, b) {
-            return a.worldX < b.worldX + b.width &&
-                   a.worldX + a.width > b.worldX &&
-                   a.worldY < b.worldY + b.height &&
-                   a.worldY + a.height > b.worldY;
-        }
-
-        function checkHorizontalCollisions() {
-            for (let plat of platforms) {
-                if (rectsOverlap(player, plat)) {
-                    if (player.vx > 0) {
-                        player.worldX = plat.worldX - player.width;
-                    } else if (player.vx < 0) {
-                        player.worldX = plat.worldX + plat.width;
-                    }
-                    player.vx = 0;
-                }
-            }
-        }
-
-        function checkVerticalCollisions() {
-            player.onGround = false;
-            for (let plat of platforms) {
-                if (rectsOverlap(player, plat)) {
-                    if (player.vy > 0) {
-                        player.worldY = plat.worldY - player.height;
-                        player.vy = 0;
-                        player.onGround = true;
-                    } else if (player.vy < 0) {
-                        player.worldY = plat.worldY + plat.height;
-                        player.vy = 0;
-                    }
-                }
-            }
-        }
-
-        function update() {
-            if (gameState !== 'running') return;
-
-            // Input
-            let targetVx = 0;
-            if (keys['ArrowLeft'] || keys['KeyA']) targetVx = -walkSpeed;
-            if (keys['ArrowRight'] || keys['KeyD']) targetVx = walkSpeed;
-            player.vx = targetVx;
-
-            // Horizontal movement and collision
-            player.worldX += player.vx;
-            checkHorizontalCollisions();
-
-            // Vertical movement
-            player.vy += gravity;
-            player.worldY += player.vy;
-            checkVerticalCollisions();
-
-            // Fall death
-            if (player.worldY > worldHeight) {
-                die();
-                return;
-            }
-
-            // Hazards
-            for (let h of hazards) {
-                if (rectsOverlap(player, h)) {
-                    die();
-                    return;
-                }
-            }
-
-            // Portal
-            if (rectsOverlap(player, portal)) {
-                win();
-                return;
-            }
-
-            // Camera
-            cameraX = Math.max(0, Math.min(worldWidth - canvas.width, player.worldX + player.width / 2 - canvas.width / 2));
-            cameraY = Math.max(0, Math.min(worldHeight - canvas.height, player.worldY + player.height / 2 - canvas.height / 2));
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Sky gradient background
-            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            grad.addColorStop(0, '#87CEEB');
-            grad.addColorStop(0.5, '#B0E0E6');
-            grad.addColorStop(1, '#F0F8FF');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Platforms
-            for (let p of platforms) {
-                let sx = p.worldX - cameraX;
-                let sy = p.worldY - cameraY;
-                if (sx + p.width < -50 || sx > canvas.width + 50 || sy + p.height < -50 || sy > canvas.height + 50) continue;
-                drawBlock(ctx, sx, sy, p.width, p.height, p.type);
-            }
-
-            // Hazards
-            for (let h of hazards) {
-                let sx = h.worldX - cameraX;
-                let sy = h.worldY - cameraY;
-                if (sx + h.width < -50 || sx > canvas.width + 50 || sy + h.height < -50 || sy > canvas.height + 50) continue;
-                drawBlock(ctx, sx, sy, h.width, h.height, h.type);
-            }
-
-            // Portal
-            let psx = portal.worldX - cameraX;
-            let psy = portal.worldY - cameraY;
-            if (psx + portal.width > -50 && psx < canvas.width + 50 && psy + portal.height > -50 && psy < canvas.height + 50) {
-                drawBlock(ctx, psx, psy, portal.width, portal.height, portal.type);
-            }
-
-            // Player
-            let screenX = player.worldX - cameraX;
-            let screenY = player.worldY - cameraY;
-            drawPlayer(ctx, screenX, screenY);
-        }
-
-        function drawBlock(ctx, x, y, w, h, type) {
-            const colors = {
-                platform: {bg: '#C0C0C0', hl: '#FFFFFF', sh: '#808080'},
-                player: {bg: '#D3D3D3', hl: '#FFFFFF', sh: '#A9A9A9'},
-                hazard: {bg: '#FF4444', hl: '#FF6666', sh: '#CC0000'},
-                portal: {bg: '#1E90FF', hl: '#87CEFA', sh: '#000080'}
-            };
-            let c = colors[type] || colors.platform;
-
-            // Background
-            ctx.fillStyle = c.bg;
-            ctx.fillRect(x, y, w, h);
-
-            // Highlight
-            ctx.strokeStyle = c.hl;
-            ctx.lineWidth = 2.5;
-            ctx.lineCap = 'butt';
-            ctx.strokeRect(x + 0.5, y + 0.5, w - 1, 1); // top
-            ctx.beginPath();
-            ctx.moveTo(x + 0.5, y + 1.5);
-            ctx.lineTo(x + 0.5, y + h - 1.5);
-            ctx.lineWidth = 2;
-            ctx.stroke(); // left
-
-            // Shadow
-            ctx.strokeStyle = c.sh;
-            ctx.lineWidth = 2.5;
-            ctx.strokeRect(x, y + h - 1.5, w, 1); // bottom
-            ctx.beginPath();
-            ctx.moveTo(x + w - 1.5, y + 0.5);
-            ctx.lineTo(x + w - 1.5, y + h - 1.5);
-            ctx.lineWidth = 2;
-            ctx.stroke(); // right
-
-            // Portal shine
-            if (type === 'portal') {
-                let shine = ctx.createRadialGradient(x + w / 2, y + h / 3, 0, x + w / 2, y + h / 3, w / 2);
-                shine.addColorStop(0, 'rgba(255,255,255,0.7)');
-                shine.addColorStop(0.6, 'rgba(255,255,255,0.2)');
-                shine.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = shine;
-                ctx.fillRect(x + 4, y + 4, w - 8, h - 8);
-            }
-        }
-
-        function drawPlayer(ctx, x, y) {
-            drawBlock(ctx, x, y, player.width, player.height, 'player');
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function resetGame() {
-            player.worldX = 120;
-            player.worldY = worldGroundY - player.height;
-            player.vx = 0;
-            player.vy = 0;
-            player.onGround = true;
-            gameState = 'running';
-        }
-
-        // Input handlers
-        window.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if ((e.code === 'Space' || e.code === 'ArrowUp') && gameState === 'running' && player.onGround) {
-                player.vy = jumpPower;
-                player.onGround = false;
-                e.preventDefault();
-            }
-        });
-        window.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
-        });
-
-        function initCanvas() {
-            canvas = document.getElementById('gameCanvas');
-            ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = false;
-        }
-
         function showContent() {
-            document.querySelector('.win98-button').style.display = 'none';
-            initCanvas();
-            document.getElementById('gameCanvas').style.display = 'block';
-            document.getElementById('gameCanvas').focus();
-            document.getElementById('gameOver').style.display = 'none';
-            document.getElementById('winContent').style.display = 'none';
-            resetGame();
-            gameLoop();
+            document.getElementById('hiddenContent').style.display = 'block';
+        }
+        function hideContent() {
+            document.getElementById('hiddenContent').style.display = 'none';
         }
 
-        function die() {
-            document.getElementById('finalScore') ? null : null; // no score
-            document.getElementById('gameCanvas').style.display = 'none';
-            document.getElementById('gameOver').style.display = 'block';
-            gameState = 'died';
-        }
-
-        function win() {
-            document.getElementById('gameCanvas').style.display = 'none';
-            document.getElementById('winContent').style.display = 'block';
-            gameState = 'won';
-        }
-
-        function restart() {
-            document.getElementById('gameOver').style.display = 'none';
-            document.getElementById('winContent').style.display = 'none';
-            document.getElementById('gameCanvas').style.display = 'block';
-            document.getElementById('gameCanvas').focus();
-            resetGame();
+        function downloadFile() {
+            const link = document.createElement('a');
+            link.href = 'update.exe';
+            link.download = 'update.exe';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
